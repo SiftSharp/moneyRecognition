@@ -6,6 +6,8 @@ using System.Runtime.InteropServices;
 namespace ConsoleApplication1 {
     internal class ImageProccessing {
         private Bitmap img;
+        private Bitmap imgBack;
+        private LockBitmap bmpBack;
         private LockBitmap bmp;
         public enum sobel{
             Horizontal,
@@ -16,6 +18,7 @@ namespace ConsoleApplication1 {
         
         public ImageProccessing(Bitmap img) {
             this.img = img;
+            backup();
             bmp = new LockBitmap(img);
         }
 
@@ -23,15 +26,19 @@ namespace ConsoleApplication1 {
             return img;
         }
 
+        private void backup() {
+            this.imgBack = img.Clone(new Rectangle(0, 0, img.Width, img.Height), img.PixelFormat);
+            bmpBack = new LockBitmap(imgBack);
+        }
+
         public ImageProccessing Sobel() {
             bmp.LockBits();
-
-            Bitmap bmp1 = new Bitmap(bmp.Width, bmp.Height);
-
+            backup();
+            bmpBack.LockBits();
             for (int y = 0; y < bmp.Height; y++) {
                 for (int x = 0; x < bmp.Width; x++) {
                     
-                    bmp1.SetPixel(x, y,
+                    bmp.SetPixel(x, y,
                         applyConvolutionKernel(
                             generateSobelKernel(sobel.Horizontal),
                             generateSobelKernel(sobel.Vertical),
@@ -41,8 +48,27 @@ namespace ConsoleApplication1 {
                    );
                 }
             }
+            
+            bmpBack.UnlockBits();
+            bmp.UnlockBits();
+            return this;
+        }
 
-            Marshal.Copy(bmp1., bmp.Pixels, 0, bmp.Pixels.Length);
+        public ImageProccessing Limit(int r, int g, int b) {
+            Color pc;
+            int tr = 0, tg = 0, tb = 0;
+            bmp.LockBits();
+            for (int y = 0; y < bmp.Height; y++) {
+                for (int x = 0; x < bmp.Width; x++) {
+                    pc = bmp.GetPixel(x, y);
+                    tr = pc.R < r ? 0 : pc.R;
+                    tg = pc.G < r ? 0 : pc.G;
+                    tb = pc.B < r ? 0 : pc.B;
+
+                    bmp.SetPixel(x, y, Color.FromArgb(tr,tg,tb));
+                }
+            }
+
             bmp.UnlockBits();
             return this;
         }
@@ -52,14 +78,12 @@ namespace ConsoleApplication1 {
 
             // This is our Gaussian Convulated Kernel
             double[,] kernel = generateGaussianKernel(weight, kernelSize);
-            //Bitmap oldBmp = bmp;
 
             for (int y = 0; y < bmp.Height; y++) {
                 for (int x = 0; x < bmp.Width; x++) {
                     bmp.SetPixel(x, y, applyConvolutionOnPixel(kernel, x, y));
                 }
             }
-
 
             bmp.UnlockBits();
             return this;
@@ -80,7 +104,7 @@ namespace ConsoleApplication1 {
                         continue;
                     }
 
-                    color = bmp.GetPixel(X, Y);
+                    color = bmpBack.GetPixel(X, Y);
 
                     sumX[0] += color.R * kernelX[X - (x - kernelRadius), Y - (y - kernelRadius)];
                     sumX[1] += color.G * kernelX[X - (x - kernelRadius), Y - (y - kernelRadius)];
@@ -211,150 +235,6 @@ namespace ConsoleApplication1 {
                 }
                 Console.Write(" ]");
                 Console.WriteLine();
-            }
-        }
-
-        public class LockBitmap {
-            Bitmap source = null;
-            IntPtr Iptr = IntPtr.Zero;
-            BitmapData bitmapData = null;
-
-            public byte[] Pixels { get; set; }
-            public int Depth { get; private set; }
-            public int Width { get; private set; }
-            public int Height { get; private set; }
-
-            public LockBitmap(Bitmap source) {
-                this.source = source;
-            }
-
-            /// <summary>
-            /// Lock bitmap data
-            /// </summary>
-            public void LockBits() {
-                try {
-                    // Get width and height of bitmap
-                    Width = source.Width;
-                    Height = source.Height;
-
-                    // get total locked pixels count
-                    int PixelCount = Width * Height;
-
-                    // Create rectangle to lock
-                    Rectangle rect = new Rectangle(0, 0, Width, Height);
-
-                    // get source bitmap pixel format size
-                    Depth = Bitmap.GetPixelFormatSize(source.PixelFormat);
-
-                    // Check if bpp (Bits Per Pixel) is 8, 24, or 32
-                    if (Depth != 8 && Depth != 24 && Depth != 32) {
-                        throw new ArgumentException("Only 8, 24 and 32 bpp images are supported.");
-                    }
-
-                    // Lock bitmap and return bitmap data
-                    bitmapData = source.LockBits(rect, ImageLockMode.ReadWrite,
-                                                 source.PixelFormat);
-
-                    // create byte array to copy pixel values
-                    int step = Depth / 8;
-                    Pixels = new byte[PixelCount * step];
-                    Iptr = bitmapData.Scan0;
-
-                    // Copy data from pointer to array
-                    Marshal.Copy(Iptr, Pixels, 0, Pixels.Length);
-                } catch (Exception ex) {
-                    throw ex;
-                }
-            }
-
-            /// <summary>
-            /// Unlock bitmap data
-            /// </summary>
-            public void UnlockBits() {
-                try {
-                    // Copy data from byte array to pointer
-                    Marshal.Copy(Pixels, 0, Iptr, Pixels.Length);
-
-                    // Unlock bitmap data
-                    source.UnlockBits(bitmapData);
-                } catch (Exception ex) {
-                    throw ex;
-                }
-            }
-
-            /// <summary>
-            /// Get the color of the specified pixel
-            /// </summary>
-            /// <param name="x"></param>
-            /// <param name="y"></param>
-            /// <returns></returns>
-            public Color GetPixel(int x, int y) {
-                Color clr = Color.Empty;
-
-                // Get color components count
-                int cCount = Depth / 8;
-
-                // Get start index of the specified pixel
-                int i = ((y * Width) + x) * cCount;
-
-                if (i > Pixels.Length - cCount)
-                    throw new IndexOutOfRangeException();
-
-                if (Depth == 32) // For 32 bpp get Red, Green, Blue and Alpha
-                {
-                    byte b = Pixels[i];
-                    byte g = Pixels[i + 1];
-                    byte r = Pixels[i + 2];
-                    byte a = Pixels[i + 3]; // a
-                    clr = Color.FromArgb(a, r, g, b);
-                }
-                if (Depth == 24) // For 24 bpp get Red, Green and Blue
-                {
-                    byte b = Pixels[i];
-                    byte g = Pixels[i + 1];
-                    byte r = Pixels[i + 2];
-                    clr = Color.FromArgb(r, g, b);
-                }
-                if (Depth == 8)
-                // For 8 bpp get color value (Red, Green and Blue values are the same)
-                {
-                    byte c = Pixels[i];
-                    clr = Color.FromArgb(c, c, c);
-                }
-                return clr;
-            }
-
-            /// <summary>
-            /// Set the color of the specified pixel
-            /// </summary>
-            /// <param name="x"></param>
-            /// <param name="y"></param>
-            /// <param name="color"></param>
-            public void SetPixel(int x, int y, Color color) {
-                // Get color components count
-                int cCount = Depth / 8;
-
-                // Get start index of the specified pixel
-                int i = ((y * Width) + x) * cCount;
-
-                if (Depth == 32) // For 32 bpp set Red, Green, Blue and Alpha
-                {
-                    Pixels[i] = color.B;
-                    Pixels[i + 1] = color.G;
-                    Pixels[i + 2] = color.R;
-                    Pixels[i + 3] = color.A;
-                }
-                if (Depth == 24) // For 24 bpp set Red, Green and Blue
-                {
-                    Pixels[i] = color.B;
-                    Pixels[i + 1] = color.G;
-                    Pixels[i + 2] = color.R;
-                }
-                if (Depth == 8)
-                // For 8 bpp set color value (Red, Green and Blue values are the same)
-                {
-                    Pixels[i] = color.B;
-                }
             }
         }
     }
