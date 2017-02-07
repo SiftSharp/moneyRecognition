@@ -18,12 +18,13 @@ namespace ConsoleApplication1{
             }
 
             img = new ImageProccessing(img)
+                .resize(500,500)
                 .Gaussian(5.5, 5)
                 .Sobel()
                 .nonMaximumSurrpression()
                 .Limit(50, 50, 50)
                 .build();
-
+           
             img.Save("cup_result.png", ImageFormat.Png);
 
             Bitmap merged = resultMerge(new Bitmap(file), img);
@@ -32,6 +33,7 @@ namespace ConsoleApplication1{
             Console.WriteLine("Press enter to close...");
             Console.ReadLine();
         }
+       
 
         static Bitmap resultMerge(Bitmap image1, Bitmap image2) {
             Bitmap bitmap = new Bitmap(image1.Width + image2.Width, Math.Max(image1.Height, image2.Height));
