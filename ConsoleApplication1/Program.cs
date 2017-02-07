@@ -6,7 +6,7 @@ namespace ConsoleApplication1{
     class Program{
 
         private static Bitmap img;
-        private static string file = "cup.png";
+        private static string file = "../../../cup.png";
 
         static void Main(string[] args){
             Console.WriteLine("Loading image...");
