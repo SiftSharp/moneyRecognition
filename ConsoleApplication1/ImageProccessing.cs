@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Drawing;
-using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
 
 namespace ConsoleApplication1 {
     internal class ImageProccessing {
@@ -70,6 +68,13 @@ namespace ConsoleApplication1 {
                    );
                 }
             }
+
+            for (int y = 0; y < bmp.Height; y++) {
+                for (int x = 0; x < bmp.Width; x++) {
+                    float tangent = bmp.GetPixel(x,y).R;
+                }
+            }
+
             
             bmpBack.UnlockBits();
             bmp.UnlockBits();
@@ -111,6 +116,63 @@ namespace ConsoleApplication1 {
             return this;
         }
 
+        public ImageProccessing nonMaximumSurrpression() {
+            bmp.LockBits();
+
+            Color color;
+
+            for (int Y = 0; Y < img.Height; Y++) {
+                for (int X = 0; X < img.Width; X++) {
+                    // Just drop values outside the image (you could do something else)
+                    if (Y - 1 < 0 || X - 1 < 0 || Y + 2 > bmp.Height || X + 2 > bmp.Width) {
+                        continue;
+                    }
+
+                    color = bmp.GetPixel(X, Y);
+
+                    int r = color.R,
+                        g = color.G,
+                        b = color.B;
+
+                    
+
+                    if (bmp.GetPixel(X + 1, Y).R >= r || bmp.GetPixel(X - 1, Y).R >= r) {
+                        r = 0;
+                    }
+
+
+                    if (bmp.GetPixel(X, Y + 1).R >= r || bmp.GetPixel(X, Y - 1).R >= r) {
+                        r = 0;
+                    }
+
+                    //
+
+                    if (bmp.GetPixel(X + 1, Y).G >= g || bmp.GetPixel(X - 1, Y).G >= g) {
+                        g = 0;
+                    }
+
+                    if (bmp.GetPixel(X, Y + 1).G >= g || bmp.GetPixel(X, Y - 1).G >= g) {
+                        g = 0;
+                    }
+
+                    //
+
+                    if (bmp.GetPixel(X + 1, Y).B >= b || bmp.GetPixel(X - 1, Y).B >= b) {
+                        b = 0;
+                    }
+
+                    if (bmp.GetPixel(X, Y + 1).B >= b || bmp.GetPixel(X, Y - 1).B >= b) {
+                        b = 0;
+                    }
+
+                    bmp.SetPixel(X, Y, Color.FromArgb(r, g, b));
+                }
+            }
+
+            bmp.UnlockBits();
+            return this;
+        }
+
         private Color applyConvolutionKernel(double[,] kernelX, double[,] kernelY, int x, int y) {
             int kernelRadius = kernelX.GetLength(0) / 2;
             double[] sumX = { 0.0, 0.0, 0.0 };
@@ -143,7 +205,7 @@ namespace ConsoleApplication1 {
             for (int i = 0; i < sumX.GetLength(0); i++) {
                 sumX[i] = Math.Sqrt((sumX[i] * sumX[i]) + (sumY[i] * sumY[i]));
                 sumX[i] = sumX[i] > 255 ? 255 : sumX[i];
-                sumX[i] = sumX[i] <   0 ?   0 : sumX[i];
+                sumX[i] = sumX[i] < 0 ? 0 : sumX[i];             
             }
 
             return Color.FromArgb((int)sumX[0], (int)sumX[1], (int)sumX[2]);

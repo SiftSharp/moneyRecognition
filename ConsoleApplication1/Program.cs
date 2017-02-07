@@ -21,6 +21,7 @@ namespace ConsoleApplication1{
                 .resize(200,200)
                 .Gaussian(5.5, 5)
                 .Sobel()
+                .nonMaximumSurrpression()
                 .Limit(50, 50, 50)
                 .build();
            
