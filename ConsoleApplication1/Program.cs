@@ -20,6 +20,7 @@ namespace ConsoleApplication1{
             img = new ImageProccessing(img)
                 .Gaussian(5.5, 5)
                 .Sobel()
+                .nonMaximumSurrpression()
                 .Limit(50, 50, 50)
                 .build();
 
