@@ -14,10 +14,12 @@ namespace ConsoleApplication1{
                 img = new Bitmap(file);
             } catch (ArgumentException e){
                 Console.WriteLine("{0}: {1}, probable cause is that the file wasn't found", e.GetType().Name, e.Message);
+                return;
             }
 
             img = new ImageProccessing(img)
                 .Gaussian(1.5, 3)
+                .Sobel()
                 .build();
 
             img.Save("blurred.png", ImageFormat.Png);

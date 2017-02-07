@@ -7,6 +7,12 @@ namespace ConsoleApplication1 {
     internal class ImageProccessing {
         private Bitmap img;
         private LockBitmap bmp;
+        public enum sobel{
+            Horizontal,
+            Vertical,
+            DiagonalF,
+            DiagonalB
+        };
         
         public ImageProccessing(Bitmap img) {
             this.img = img;
@@ -17,11 +23,35 @@ namespace ConsoleApplication1 {
             return img;
         }
 
+        public ImageProccessing Sobel() {
+            bmp.LockBits();
+
+            Bitmap bmp1 = new Bitmap(bmp.Width, bmp.Height);
+
+            for (int y = 0; y < bmp.Height; y++) {
+                for (int x = 0; x < bmp.Width; x++) {
+                    
+                    bmp1.SetPixel(x, y,
+                        applyConvolutionKernel(
+                            generateSobelKernel(sobel.Horizontal),
+                            generateSobelKernel(sobel.Vertical),
+                            x,
+                            y
+                       )
+                   );
+                }
+            }
+
+            Marshal.Copy(bmp1., bmp.Pixels, 0, bmp.Pixels.Length);
+            bmp.UnlockBits();
+            return this;
+        }
+
         public ImageProccessing Gaussian(double weight, int kernelSize) {
             bmp.LockBits();
 
             // This is our Gaussian Convulated Kernel
-            double[,] kernel = generateKernel(weight, kernelSize);
+            double[,] kernel = generateGaussianKernel(weight, kernelSize);
             //Bitmap oldBmp = bmp;
 
             for (int y = 0; y < bmp.Height; y++) {
@@ -30,8 +60,47 @@ namespace ConsoleApplication1 {
                 }
             }
 
+
             bmp.UnlockBits();
             return this;
+        }
+
+        private Color applyConvolutionKernel(double[,] kernelX, double[,] kernelY, int x, int y) {
+            int kernelRadius = kernelX.GetLength(0) / 2;
+            double[] sumX = { 0.0, 0.0, 0.0 };
+            double[] sumY = { 0.0, 0.0, 0.0 };
+            Color color;
+            int amountOfActivePixels = 0;
+
+            for (int Y = (y - kernelRadius); Y <= (y + kernelRadius); Y++) {
+                for (int X = (x - kernelRadius); X <= (x + kernelRadius); X++) {
+
+                    // Just drop values outside the image (you could do something else)
+                    if (Y < 0 || X < 0 || Y + 1 > bmp.Height || X + 1 > bmp.Width) {
+                        continue;
+                    }
+
+                    color = bmp.GetPixel(X, Y);
+
+                    sumX[0] += color.R * kernelX[X - (x - kernelRadius), Y - (y - kernelRadius)];
+                    sumX[1] += color.G * kernelX[X - (x - kernelRadius), Y - (y - kernelRadius)];
+                    sumX[2] += color.B * kernelX[X - (x - kernelRadius), Y - (y - kernelRadius)];
+
+                    sumY[0] += color.R * kernelY[X - (x - kernelRadius), Y - (y - kernelRadius)];
+                    sumY[1] += color.G * kernelY[X - (x - kernelRadius), Y - (y - kernelRadius)];
+                    sumY[2] += color.B * kernelY[X - (x - kernelRadius), Y - (y - kernelRadius)];
+
+                    amountOfActivePixels++;
+                }
+            }
+            
+            for (int i = 0; i < sumX.GetLength(0); i++) {
+                sumX[i] = Math.Sqrt((sumX[i] * sumX[i]) + (sumY[i] * sumY[i]));
+                sumX[i] = sumX[i] > 255 ? 255 : sumX[i];
+                sumX[i] = sumX[i] <   0 ?   0 : sumX[i];
+            }
+
+            return Color.FromArgb((int)sumX[0], (int)sumX[1], (int)sumX[2]);
         }
 
         private Color applyConvolutionOnPixel(double[,] kernel, int x, int y) {
@@ -58,52 +127,15 @@ namespace ConsoleApplication1 {
                 }
             }
 
-            return Color.FromArgb((int)sum[0], (int)sum[1], (int)sum[2]);
-        }
-
-
-        private static Bitmap Gaussian(Bitmap bmp, double weight, int kernelSize) {
-            // This is our Gaussian Convulated Kernel
-            double[,] kernel = generateKernel(weight, kernelSize);
-            Bitmap oldBmp = bmp;
-
-            for (int y = 0; y < bmp.Height; y++) {
-                for (int x = 0; x < bmp.Width; x++) {
-                    bmp.SetPixel(x, y, applyConvolutionOnPixel(bmp, kernel, x, y));
-                }
-            }
-
-            return bmp;
-        }
-
-        private static Color applyConvolutionOnPixel(Bitmap bmp, double[,] kernel, int x, int y) {
-            int kernelRadius = kernel.GetLength(0) / 2;
-            double[] sum = { 0.0, 0.0, 0.0 };
-            Color color;
-            int amountOfActivePixels = 0;
-
-            for (int Y = (y - kernelRadius); Y <= (y + kernelRadius); Y++) {
-                for (int X = (x - kernelRadius); X <= (x + kernelRadius); X++) {
-
-                    // Just drop values outside the image (you could do something else)
-                    if (Y < 0 || X < 0 || Y + 1 > bmp.Height || X + 1 > bmp.Width) {
-                        continue;
-                    }
-
-                    color = bmp.GetPixel(X, Y);
-
-                    sum[0] += color.R * kernel[X - (x - kernelRadius), Y - (y - kernelRadius)];
-                    sum[1] += color.G * kernel[X - (x - kernelRadius), Y - (y - kernelRadius)];
-                    sum[2] += color.B * kernel[X - (x - kernelRadius), Y - (y - kernelRadius)];
-
-                    amountOfActivePixels++;
-                }
+            for(int i = 0; i < sum.GetLength(0); i++) {
+                sum[i] = sum[i] > 255 ? 255 : sum[i];
+                sum[i] = sum[i] < 0 ? 0 : sum[i];
             }
 
             return Color.FromArgb((int)sum[0], (int)sum[1], (int)sum[2]);
         }
 
-        private static double[,] generateKernel(double weight, int size) {
+        private static double[,] generateGaussianKernel(double weight, int size) {
             double[,] kernel = new double[size, size];
             int kernelRadius = size / 2;
             double sum = 0;
@@ -126,7 +158,20 @@ namespace ConsoleApplication1 {
             return kernel;
         }
 
-
+        private double[,] generateSobelKernel(sobel direction) {
+            switch (direction) {
+                case sobel.Vertical:
+                    return new double[,] { { -1, 0, 1 }, { -2, 0, 2 }, { -1, 0, 1 } };
+                case sobel.Horizontal:
+                    return new double[,] { { 1, 2, 1 }, { 0, 0, 0 }, { -1, -2, -1 } };
+                case sobel.DiagonalF:
+                    return new double[,] { { -2, -1, 0 }, { -1, 0, 1 }, { 0, 1, 2 } };
+                case sobel.DiagonalB:
+                    return new double[,] { { 0, -1, -2 }, { 1, 0, -1 }, { 2, 1, 0 } };
+                default:
+                    return null;
+            }
+        }
 
 
         /**
@@ -168,7 +213,6 @@ namespace ConsoleApplication1 {
                 Console.WriteLine();
             }
         }
-
 
         public class LockBitmap {
             Bitmap source = null;
