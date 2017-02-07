@@ -10,3 +10,9 @@ C:\Users\hamburger\Source\Repos\objectRecognition\ConsoleApplication1\obj\Debug\
 C:\Users\hamburger\Source\Repos\objectRecognition\ConsoleApplication1\obj\Debug\ConsoleApplication1.csprojResolveAssemblyReference.cache
 C:\Users\hamburger\Source\Repos\objectRecognition\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe
 C:\Users\hamburger\Source\Repos\objectRecognition\ConsoleApplication1\bin\Debug\ConsoleApplication1.pdb
+Y:\Google Drev\AAU\2. Semester\P2\objectRecognition\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe.config
+Y:\Google Drev\AAU\2. Semester\P2\objectRecognition\ConsoleApplication1\obj\Debug\ConsoleApplication1.exe
+Y:\Google Drev\AAU\2. Semester\P2\objectRecognition\ConsoleApplication1\obj\Debug\ConsoleApplication1.pdb
+Y:\Google Drev\AAU\2. Semester\P2\objectRecognition\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe
+Y:\Google Drev\AAU\2. Semester\P2\objectRecognition\ConsoleApplication1\bin\Debug\ConsoleApplication1.pdb
+Y:\Google Drev\AAU\2. Semester\P2\objectRecognition\ConsoleApplication1\obj\Debug\ConsoleApplication1.csprojResolveAssemblyReference.cache

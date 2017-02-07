@@ -31,6 +31,28 @@ namespace ConsoleApplication1 {
             bmpBack = new LockBitmap(imgBack);
         }
 
+        public ImageProccessing resize(int maxWidth, int maxHeight) {
+            
+            double ratioX = (double)maxWidth / img.Width;
+            double ratioY = (double)maxHeight / img.Height;
+            double ratio = Math.Min(ratioX, ratioY);
+
+            int newWidth = (int)(img.Width * ratio);
+            int newHeight = (int)(img.Height * ratio);
+
+            Bitmap newImage = new Bitmap(newWidth, newHeight);
+
+            using (Graphics graphics = Graphics.FromImage(newImage)) {
+                graphics.DrawImage(img, 0, 0, newWidth, newHeight);
+            }
+
+            img = newImage.Clone(new Rectangle(0, 0, newImage.Width, newImage.Height), newImage.PixelFormat);
+            bmp = new LockBitmap(img);
+            backup();
+            return this;
+        }
+
+
         public ImageProccessing Sobel() {
             bmp.LockBits();
             backup();
