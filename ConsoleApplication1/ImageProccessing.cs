@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Linq;
+
 
 namespace ConsoleApplication1 {
     internal class ImageProccessing {
@@ -13,7 +17,10 @@ namespace ConsoleApplication1 {
             DiagonalF,
             DiagonalB
         };
-        
+
+        double[,][] convulutionValues;
+
+
         public ImageProccessing(Bitmap img) {
             this.img = img;
             backup();
@@ -52,19 +59,35 @@ namespace ConsoleApplication1 {
 
 
         public ImageProccessing Sobel() {
-            bmp.LockBits();
             backup();
             bmpBack.LockBits();
+            bmp.LockBits();
+
+            convulutionValues = new double[bmp.Width, bmp.Height][];
+
             for (int y = 0; y < bmp.Height; y++) {
                 for (int x = 0; x < bmp.Width; x++) {
+
+                    double[][,] kernelsToApply = new double[][,]{
+                        generateSobelKernel(sobel.Horizontal),
+                        generateSobelKernel(sobel.Horizontal),
+                        generateSobelKernel(sobel.DiagonalB),
+                        generateSobelKernel(sobel.DiagonalF)
+                    };
+
+                    convulutionValues[x, y] = applyConvolutionKernels(
+                        kernelsToApply, x, y
+                    );
+
+                    double[] sumX = convulutionValues[x, y];
+
+                    for (int i = 0; i < sumX.GetLength(0); i++) {
+                        sumX[i] = sumX[i] > 255 ? 255 : sumX[i];
+                        sumX[i] = sumX[i] < 0 ? 0 : sumX[i];
+                    }
                     
                     bmp.SetPixel(x, y,
-                        applyConvolutionKernel(
-                            generateSobelKernel(sobel.Horizontal),
-                            generateSobelKernel(sobel.Vertical),
-                            x,
-                            y
-                       )
+                        Color.FromArgb((int)sumX[0], (int)sumX[1], (int)sumX[2])
                    );
                 }
             }
@@ -75,7 +98,6 @@ namespace ConsoleApplication1 {
                 }
             }
 
-            
             bmpBack.UnlockBits();
             bmp.UnlockBits();
             return this;
@@ -101,17 +123,31 @@ namespace ConsoleApplication1 {
         }
 
         public ImageProccessing Gaussian(double weight, int kernelSize) {
-            bmp.LockBits();
+            bmp.LockBits(); 
+            backup();
+            bmpBack.LockBits();
 
+            Color color;
+            double[] sum;
             // This is our Gaussian Convulated Kernel
             double[,] kernel = generateGaussianKernel(weight, kernelSize);
 
             for (int y = 0; y < bmp.Height; y++) {
                 for (int x = 0; x < bmp.Width; x++) {
-                    bmp.SetPixel(x, y, applyConvolutionOnPixel(kernel, x, y));
+
+                    sum = applyConvolutionKernels(new double[][,] { kernel }, x, y);
+
+                    for (int i = 0; i < sum.GetLength(0); i++) {
+                        sum[i] = sum[i] > 255 ? 255 : sum[i];
+                        sum[i] = sum[i] < 0 ? 0 : sum[i];
+                    }
+
+                    color = Color.FromArgb((int)sum[0], (int)sum[1], (int)sum[2]);
+
+                    bmp.SetPixel(x, y, color);
                 }
             }
-
+            bmpBack.UnlockBits();
             bmp.UnlockBits();
             return this;
         }
@@ -119,7 +155,7 @@ namespace ConsoleApplication1 {
         public ImageProccessing nonMaximumSurrpression() {
             bmp.LockBits();
 
-            Color color;
+            double[] color;
 
             for (int Y = 0; Y < img.Height; Y++) {
                 for (int X = 0; X < img.Width; X++) {
@@ -128,44 +164,76 @@ namespace ConsoleApplication1 {
                         continue;
                     }
 
-                    color = bmp.GetPixel(X, Y);
-
-                    int r = color.R,
-                        g = color.G,
-                        b = color.B;
+                    color = convulutionValues[X, Y];
+                    
+                    double r = color[0],
+                           g = color[1],
+                           b = color[2];
 
                     
 
-                    if (bmp.GetPixel(X + 1, Y).R >= r || bmp.GetPixel(X - 1, Y).R >= r) {
+                    if (convulutionValues[X + 1, Y][0] > r || convulutionValues[X - 1, Y][0] > r) {
                         r = 0;
                     }
 
 
-                    if (bmp.GetPixel(X, Y + 1).R >= r || bmp.GetPixel(X, Y - 1).R >= r) {
+                    if (convulutionValues[X, Y + 1][0] > r || convulutionValues[X, Y - 1][0] > r) {
+                        r = 0;
+                    }
+         
+                       
+                    if (convulutionValues[X - 1, Y - 1][0] > r || convulutionValues[X + 1, Y + 1][0] > r) {
                         r = 0;
                     }
 
-                    //
 
-                    if (bmp.GetPixel(X + 1, Y).G >= g || bmp.GetPixel(X - 1, Y).G >= g) {
-                        g = 0;
+                    if (convulutionValues[X + 1, Y - 1][0] > r || convulutionValues[X - 1, Y + 1][0] > r) {
+                        r = 0;
                     }
 
-                    if (bmp.GetPixel(X, Y + 1).G >= g || bmp.GetPixel(X, Y - 1).G >= g) {
-                        g = 0;
-                    }
 
                     //
 
-                    if (bmp.GetPixel(X + 1, Y).B >= b || bmp.GetPixel(X - 1, Y).B >= b) {
+                    if (convulutionValues[X + 1, Y][1] > g || convulutionValues[X - 1, Y][1] > g) {
+                        g = 0;
+                    }
+
+                    if (convulutionValues[X, Y + 1][1] > g || convulutionValues[X, Y - 1][1] > g) {
+                        g = 0;
+                    }
+
+                    if (convulutionValues[X - 1, Y - 1][1] > g || convulutionValues[X + 1, Y + 1][1] > g) {
+                        g = 0;
+                    }
+
+
+                    if (convulutionValues[X + 1, Y - 1][1] > g || convulutionValues[X - 1, Y + 1][1] > g) {
+                        g = 0;
+                    }
+
+
+                    if (convulutionValues[X + 1, Y][2] > b || convulutionValues[X - 1, Y][2] > b) {
                         b = 0;
                     }
 
-                    if (bmp.GetPixel(X, Y + 1).B >= b || bmp.GetPixel(X, Y - 1).B >= b) {
+                    if (convulutionValues[X, Y + 1][2] > b || convulutionValues[X, Y - 1][2] > b) {
                         b = 0;
                     }
 
-                    bmp.SetPixel(X, Y, Color.FromArgb(r, g, b));
+                    if (convulutionValues[X - 1, Y - 1][2] > b || convulutionValues[X + 1, Y + 1][2] > b) {
+                        b = 0;
+                    }
+
+
+                    if (convulutionValues[X + 1, Y - 1][2] > b || convulutionValues[X - 1, Y + 1][2] > b) {
+                        b = 0;
+                    }
+
+                    r = r > 255 ? 255 : r < 0 ? 0 : r;
+                    g = g > 255 ? 255 : g < 0 ? 0 : g;
+                    b = b > 255 ? 255 : b < 0 ? 0 : b;
+
+                    bmp.SetPixel(X, Y, Color.FromArgb((int) r, (int) g, (int) b));
                 }
             }
 
@@ -173,13 +241,27 @@ namespace ConsoleApplication1 {
             return this;
         }
 
-        private Color applyConvolutionKernel(double[,] kernelX, double[,] kernelY, int x, int y) {
-            int kernelRadius = kernelX.GetLength(0) / 2;
-            double[] sumX = { 0.0, 0.0, 0.0 };
-            double[] sumY = { 0.0, 0.0, 0.0 };
+        private bool checkNeighbourPixels(LockBitmap bmp, int x, int y, int value) {
+            return bmp.GetPixel(x, y + 1).B >= value || bmp.GetPixel(x, y - 1).B >= value ||
+                   bmp.GetPixel(x + 1, y).B >= value || bmp.GetPixel(x - 1, y).B >= value;
+        }
+
+
+        private double[] applyConvolutionKernels(double[][,] kernels, int x, int y) {
+            // The backup image and the actual image should be same dimensions
+            Assert.AreEqual(bmp.Width, bmpBack.Width);
+            Assert.AreEqual(bmp.Height, bmpBack.Height);
+
+            int kernelRadius = kernels[0].GetLength(0) / 2;
             Color color;
+            double[][] sumsFromKernels = new double[kernels.GetLength(0)][];
+            double[] final = new double[3];
             int amountOfActivePixels = 0;
 
+            sumsFromKernels = sumsFromKernels.Select(
+                el => new double[3] { 0.0, 0.0, 0.0 }
+            ).ToArray();
+                       
             for (int Y = (y - kernelRadius); Y <= (y + kernelRadius); Y++) {
                 for (int X = (x - kernelRadius); X <= (x + kernelRadius); X++) {
 
@@ -188,61 +270,35 @@ namespace ConsoleApplication1 {
                         continue;
                     }
 
-                    color = bmpBack.GetPixel(X, Y);
-
-                    sumX[0] += color.R * kernelX[X - (x - kernelRadius), Y - (y - kernelRadius)];
-                    sumX[1] += color.G * kernelX[X - (x - kernelRadius), Y - (y - kernelRadius)];
-                    sumX[2] += color.B * kernelX[X - (x - kernelRadius), Y - (y - kernelRadius)];
-
-                    sumY[0] += color.R * kernelY[X - (x - kernelRadius), Y - (y - kernelRadius)];
-                    sumY[1] += color.G * kernelY[X - (x - kernelRadius), Y - (y - kernelRadius)];
-                    sumY[2] += color.B * kernelY[X - (x - kernelRadius), Y - (y - kernelRadius)];
-
-                    amountOfActivePixels++;
-                }
-            }
-            
-            for (int i = 0; i < sumX.GetLength(0); i++) {
-                sumX[i] = Math.Sqrt((sumX[i] * sumX[i]) + (sumY[i] * sumY[i]));
-                sumX[i] = sumX[i] > 255 ? 255 : sumX[i];
-                sumX[i] = sumX[i] < 0 ? 0 : sumX[i];             
-            }
-
-            return Color.FromArgb((int)sumX[0], (int)sumX[1], (int)sumX[2]);
-        }
-
-        private Color applyConvolutionOnPixel(double[,] kernel, int x, int y) {
-            int kernelRadius = kernel.GetLength(0) / 2;
-            double[] sum = { 0.0, 0.0, 0.0 };
-            Color color;
-            int amountOfActivePixels = 0;
-
-            for (int Y = (y - kernelRadius); Y <= (y + kernelRadius); Y++) {
-                for (int X = (x - kernelRadius); X <= (x + kernelRadius); X++) {
-
-                    // Just drop values outside the image (you could do something else)
-                    if (Y < 0 || X < 0 || Y + 1 > bmp.Height || X + 1 > bmp.Width) {
-                        continue;
+                    for(int i=0; i<kernels.GetLength(0);i++) {
+                        double[] sumX = new double[kernels[i].GetLength(0)];
+                        double[] sumY = new double[kernels[i].GetLength(1)];
+                        color = bmpBack.GetPixel(X, Y);
+                        
+                        sumsFromKernels[i][0] += color.R * kernels[i][X - (x - kernelRadius), Y - (y - kernelRadius)];
+                        sumsFromKernels[i][1] += color.G * kernels[i][X - (x - kernelRadius), Y - (y - kernelRadius)];
+                        sumsFromKernels[i][2] += color.B * kernels[i][X - (x - kernelRadius), Y - (y - kernelRadius)];
                     }
 
-                    color = bmp.GetPixel(X, Y);
-
-                    sum[0] += color.R * kernel[X - (x - kernelRadius), Y - (y - kernelRadius)];
-                    sum[1] += color.G * kernel[X - (x - kernelRadius), Y - (y - kernelRadius)];
-                    sum[2] += color.B * kernel[X - (x - kernelRadius), Y - (y - kernelRadius)];
-
                     amountOfActivePixels++;
                 }
             }
 
-            for(int i = 0; i < sum.GetLength(0); i++) {
-                sum[i] = sum[i] > 255 ? 255 : sum[i];
-                sum[i] = sum[i] < 0 ? 0 : sum[i];
+            for (int i = 0; i < sumsFromKernels.GetLength(0); i++) {
+                sumsFromKernels[i] = sumsFromKernels[i].Select(el => el * el).ToArray();
             }
 
-            return Color.FromArgb((int)sum[0], (int)sum[1], (int)sum[2]);
-        }
+            for (int i = 0; i < sumsFromKernels.GetLength(0); i++) {
+                for (int j = 0; j < 3; j++) {
+                    final[j] += sumsFromKernels[i][j];
+                }
+            }
 
+            final = final.Select(el => Math.Sqrt(el)).ToArray();
+
+            return final; 
+        }
+        
         private static double[,] generateGaussianKernel(double weight, int size) {
             double[,] kernel = new double[size, size];
             int kernelRadius = size / 2;
@@ -266,6 +322,7 @@ namespace ConsoleApplication1 {
             return kernel;
         }
 
+
         private double[,] generateSobelKernel(sobel direction) {
             switch (direction) {
                 case sobel.Vertical:
@@ -280,7 +337,6 @@ namespace ConsoleApplication1 {
                     return null;
             }
         }
-
 
         /**
          * Calculates the entity value for x, y
@@ -297,18 +353,23 @@ namespace ConsoleApplication1 {
             return result;
         }
 
-        public static Bitmap convertToBlackAndWhite(Bitmap Bmp) {
+        public ImageProccessing convertToBlackAndWhite() {
             int rgb;
             Color c;
 
-            for (int y = 0; y < Bmp.Height; y++) {
-                for (int x = 0; x < Bmp.Width; x++) {
-                    c = Bmp.GetPixel(x, y);
+            bmp.LockBits();
+
+            for (int y = 0; y < bmp.Height; y++) {
+                for (int x = 0; x < bmp.Width; x++) {
+                    c = bmp.GetPixel(x, y);
                     rgb = (int)((c.R + c.G + c.B) / 3);
-                    Bmp.SetPixel(x, y, Color.FromArgb(rgb, rgb, rgb));
+                    bmp.SetPixel(x, y, Color.FromArgb(rgb, rgb, rgb));
                 }
             }
-            return Bmp;
+
+            bmp.UnlockBits();
+            backup();
+            return this;
         }
 
         private static void dumpMatrix(double[,] values) {

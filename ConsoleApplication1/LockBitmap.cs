@@ -90,6 +90,11 @@ namespace ConsoleApplication1 {
             // Get start index of the specified pixel
             int i = ((y * Width) + x) * cCount;
 
+            if(Pixels == null) {
+                Console.WriteLine("StackTrace: '{0}'", Environment.StackTrace);
+                throw new NullReferenceException();
+            }
+
             if (i > Pixels.Length - cCount)
                 throw new IndexOutOfRangeException();
 

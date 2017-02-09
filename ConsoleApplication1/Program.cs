@@ -13,21 +13,28 @@ namespace ConsoleApplication1{
             try{
                 img = new Bitmap(file);
             } catch (ArgumentException e){
-                Console.WriteLine("{0}: {1}, probable cause is that the file wasn't found", e.GetType().Name, e.Message);
+                Console.WriteLine(
+                    "{0}: {1}, probable cause is that the file wasn't found", 
+                    e.GetType().Name, 
+                    e.Message
+                );
+
                 return;
             }
 
             img = new ImageProccessing(img)
                 .resize(500,500)
-                .Gaussian(5.5, 5)
+                .convertToBlackAndWhite()
+                .Gaussian(1.5, 5)
                 .Sobel()
-                .nonMaximumSurrpression()
                 .Limit(50, 50, 50)
+                .nonMaximumSurrpression()
                 .build();
-           
+
             img.Save("cup_result.png", ImageFormat.Png);
 
-            Bitmap merged = resultMerge(new Bitmap(file), img);
+            Bitmap merged = resultMerge(new ImageProccessing(new Bitmap(file)).resize(500,500).build(), img);
+
             merged.Save("beforeAndAfter.png",ImageFormat.Png);
 
             Console.WriteLine("Press enter to close...");
@@ -36,7 +43,12 @@ namespace ConsoleApplication1{
        
 
         static Bitmap resultMerge(Bitmap image1, Bitmap image2) {
-            Bitmap bitmap = new Bitmap(image1.Width + image2.Width, Math.Max(image1.Height, image2.Height));
+
+            Bitmap bitmap = new Bitmap(
+                image1.Width + image2.Width, 
+                Math.Max(image1.Height, image2.Height)
+            );
+
             using (Graphics g = Graphics.FromImage(bitmap)) {
                 g.DrawImage(image1, 0, 0);
                 g.DrawImage(image2, image1.Width, 0);
