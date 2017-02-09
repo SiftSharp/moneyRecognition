@@ -6,7 +6,7 @@ namespace ConsoleApplication1{
     class Program{
 
         private static Bitmap img;
-        private static string file = "../../../cup.png";
+        private static string file = "../../../object01.png";
 
         static void Main(string[] args){
             Console.WriteLine("Loading image...");
@@ -26,8 +26,8 @@ namespace ConsoleApplication1{
                 .resize(500,500)
                 .convertToBlackAndWhite()
                 .Gaussian(1.5, 5)
-                .Sobel()
-                .Limit(50, 50, 50)
+                .SobelSupression()
+                .Limit(60, 60, 60)
                 .nonMaximumSurrpression()
                 .build();
 

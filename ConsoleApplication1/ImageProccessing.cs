@@ -4,7 +4,6 @@ using System.Drawing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 
-
 namespace ConsoleApplication1 {
     internal class ImageProccessing {
         private Bitmap img;
@@ -17,8 +16,7 @@ namespace ConsoleApplication1 {
             DiagonalF,
             DiagonalB
         };
-
-        double[,][] convulutionValues;
+        private double[,][][] convulutionValues;
 
 
         public ImageProccessing(Bitmap img) {
@@ -58,45 +56,41 @@ namespace ConsoleApplication1 {
         }
 
 
-        public ImageProccessing Sobel() {
+        public ImageProccessing SobelSupression() {
             backup();
             bmpBack.LockBits();
             bmp.LockBits();
 
-            convulutionValues = new double[bmp.Width, bmp.Height][];
+
+            convulutionValues = new double[bmp.Width, bmp.Height][][];
 
             for (int y = 0; y < bmp.Height; y++) {
                 for (int x = 0; x < bmp.Width; x++) {
 
                     double[][,] kernelsToApply = new double[][,]{
-                        generateSobelKernel(sobel.Horizontal),
+                        generateSobelKernel(sobel.Vertical),
                         generateSobelKernel(sobel.Horizontal),
                         generateSobelKernel(sobel.DiagonalB),
                         generateSobelKernel(sobel.DiagonalF)
                     };
 
                     convulutionValues[x, y] = applyConvolutionKernels(
-                        kernelsToApply, x, y
+                        kernelsToApply, x, y, true
                     );
 
-                    double[] sumX = convulutionValues[x, y];
+                    double[] limtedValues = sumSqrt(convulutionValues[x, y]);
 
-                    for (int i = 0; i < sumX.GetLength(0); i++) {
-                        sumX[i] = sumX[i] > 255 ? 255 : sumX[i];
-                        sumX[i] = sumX[i] < 0 ? 0 : sumX[i];
+                    for (int i = 0; i < limtedValues.GetLength(0); i++) {
+                        limtedValues[i] = limtedValues[i] > 255 ? 255 : limtedValues[i];
+                        limtedValues[i] = limtedValues[i] < 0 ? 0 : limtedValues[i];
                     }
                     
                     bmp.SetPixel(x, y,
-                        Color.FromArgb((int)sumX[0], (int)sumX[1], (int)sumX[2])
+                        Color.FromArgb((int)limtedValues[0], (int)limtedValues[1], (int)limtedValues[2])
                    );
                 }
             }
 
-            for (int y = 0; y < bmp.Height; y++) {
-                for (int x = 0; x < bmp.Width; x++) {
-                    float tangent = bmp.GetPixel(x,y).R;
-                }
-            }
 
             bmpBack.UnlockBits();
             bmp.UnlockBits();
@@ -153,87 +147,63 @@ namespace ConsoleApplication1 {
         }
 
         public ImageProccessing nonMaximumSurrpression() {
-            bmp.LockBits();
+            Assert.IsNotNull(convulutionValues);
 
-            double[] color;
+            bmp.LockBits();
+            float tangent = 0.0F;
+            double color;
+            double[,] Gradient = new double[img.Width, img.Height];
+            double[,] NonMax = new double[img.Width, img.Height];
+            for (int Y = 0; Y < img.Height; Y++) {
+                for (int X = 0; X < img.Width; X++) {
+                    Gradient[X, Y] = sumSqrt(convulutionValues[X, Y])[0] / 180;
+                    NonMax[X, Y] = Gradient[X, Y];
+                }
+            }
 
             for (int Y = 0; Y < img.Height; Y++) {
                 for (int X = 0; X < img.Width; X++) {
+
                     // Just drop values outside the image (you could do something else)
                     if (Y - 1 < 0 || X - 1 < 0 || Y + 2 > bmp.Height || X + 2 > bmp.Width) {
                         continue;
                     }
-
-                    color = convulutionValues[X, Y];
                     
-                    double r = color[0],
-                           g = color[1],
-                           b = color[2];
-
+                    if (convulutionValues[X, Y][0][0] == 0) {
+                        tangent = 90F;
+                    } else {
+                        // converting radians to degrees
+                        tangent = (float)
+                            (Math.Atan2(convulutionValues[X, Y][0][1], convulutionValues[X, Y][0][0]));
+                    }
                     
-
-                    if (convulutionValues[X + 1, Y][0] > r || convulutionValues[X - 1, Y][0] > r) {
-                        r = 0;
+                    //Horizontal Edge
+                    if (((-22.5 < tangent) && (tangent <= 22.5)) || ((157.5 < tangent) && (tangent <= -157.5))) {
+                        if ((Gradient[X, Y] < Gradient[X, Y + 1]) || (Gradient[X, Y] < Gradient[X, Y - 1]))
+                            NonMax[X, Y] = 0;
                     }
 
-
-                    if (convulutionValues[X, Y + 1][0] > r || convulutionValues[X, Y - 1][0] > r) {
-                        r = 0;
-                    }
-         
-                       
-                    if (convulutionValues[X - 1, Y - 1][0] > r || convulutionValues[X + 1, Y + 1][0] > r) {
-                        r = 0;
+                    //Vertical Edge
+                    if (((-112.5 < tangent) && (tangent <= -67.5)) || ((67.5 < tangent) && (tangent <= 112.5))) {
+                        if ((Gradient[X, Y] < Gradient[X + 1, Y]) || (Gradient[X, Y] < Gradient[X - 1, Y]))
+                            NonMax[X, Y] = 0;
                     }
 
-
-                    if (convulutionValues[X + 1, Y - 1][0] > r || convulutionValues[X - 1, Y + 1][0] > r) {
-                        r = 0;
+                    //+45 Degree Edge
+                    if (((-67.5 < tangent) && (tangent <= -22.5)) || ((112.5 < tangent) && (tangent <= 157.5))) {
+                        if ((Gradient[X, Y] < Gradient[X + 1, Y - 1]) || (Gradient[X, Y] < Gradient[X - 1, Y + 1]))
+                            NonMax[X, Y] = 0;
                     }
 
-
-                    //
-
-                    if (convulutionValues[X + 1, Y][1] > g || convulutionValues[X - 1, Y][1] > g) {
-                        g = 0;
+                    //-45 Degree Edge
+                    if (((-157.5 < tangent) && (tangent <= -112.5)) || ((67.5 < tangent) && (tangent <= 22.5))) {
+                        if ((Gradient[X, Y] < Gradient[X + 1, Y + 1]) || (Gradient[X, Y] < Gradient[X - 1, Y - 1]))
+                            NonMax[X, Y] = 0;
                     }
 
-                    if (convulutionValues[X, Y + 1][1] > g || convulutionValues[X, Y - 1][1] > g) {
-                        g = 0;
-                    }
+                    color = NonMax[X, Y] > 255 ? 255 : NonMax[X, Y] < 0 ? 0 : NonMax[X, Y];
 
-                    if (convulutionValues[X - 1, Y - 1][1] > g || convulutionValues[X + 1, Y + 1][1] > g) {
-                        g = 0;
-                    }
-
-
-                    if (convulutionValues[X + 1, Y - 1][1] > g || convulutionValues[X - 1, Y + 1][1] > g) {
-                        g = 0;
-                    }
-
-
-                    if (convulutionValues[X + 1, Y][2] > b || convulutionValues[X - 1, Y][2] > b) {
-                        b = 0;
-                    }
-
-                    if (convulutionValues[X, Y + 1][2] > b || convulutionValues[X, Y - 1][2] > b) {
-                        b = 0;
-                    }
-
-                    if (convulutionValues[X - 1, Y - 1][2] > b || convulutionValues[X + 1, Y + 1][2] > b) {
-                        b = 0;
-                    }
-
-
-                    if (convulutionValues[X + 1, Y - 1][2] > b || convulutionValues[X - 1, Y + 1][2] > b) {
-                        b = 0;
-                    }
-
-                    r = r > 255 ? 255 : r < 0 ? 0 : r;
-                    g = g > 255 ? 255 : g < 0 ? 0 : g;
-                    b = b > 255 ? 255 : b < 0 ? 0 : b;
-
-                    bmp.SetPixel(X, Y, Color.FromArgb((int) r, (int) g, (int) b));
+                    bmp.SetPixel(X, Y, Color.FromArgb((int) color, (int) color, (int) color));
                 }
             }
 
@@ -246,22 +216,43 @@ namespace ConsoleApplication1 {
                    bmp.GetPixel(x + 1, y).B >= value || bmp.GetPixel(x - 1, y).B >= value;
         }
 
-
         private double[] applyConvolutionKernels(double[][,] kernels, int x, int y) {
+            double[][] sumsFromKernels = applyConvolutionKernels(kernels, x, y, true);
+            return sumSqrt(sumsFromKernels);
+        }
+
+        private double[] sumSqrt(double[][] sums) {
+            double[] final = new double[3];
+            for (int i = 0; i < sums.GetLength(0); i++) {
+                sums[i] = sums[i].Select(el => el * el).ToArray();
+            }
+
+            for (int i = 0; i < sums.GetLength(0); i++) {
+                for (int j = 0; j < 3; j++) {
+                    final[j] += sums[i][j];
+                }
+            }
+
+            final = final.Select(el => Math.Sqrt(el)).ToArray();
+
+            return final;
+        }
+
+        private double[][] applyConvolutionKernels(double[][,] kernels, int x, int y, bool returnRaw) {
             // The backup image and the actual image should be same dimensions
             Assert.AreEqual(bmp.Width, bmpBack.Width);
             Assert.AreEqual(bmp.Height, bmpBack.Height);
+            Assert.IsNotNull(kernels);
 
             int kernelRadius = kernels[0].GetLength(0) / 2;
             Color color;
             double[][] sumsFromKernels = new double[kernels.GetLength(0)][];
-            double[] final = new double[3];
             int amountOfActivePixels = 0;
 
             sumsFromKernels = sumsFromKernels.Select(
                 el => new double[3] { 0.0, 0.0, 0.0 }
             ).ToArray();
-                       
+
             for (int Y = (y - kernelRadius); Y <= (y + kernelRadius); Y++) {
                 for (int X = (x - kernelRadius); X <= (x + kernelRadius); X++) {
 
@@ -284,19 +275,7 @@ namespace ConsoleApplication1 {
                 }
             }
 
-            for (int i = 0; i < sumsFromKernels.GetLength(0); i++) {
-                sumsFromKernels[i] = sumsFromKernels[i].Select(el => el * el).ToArray();
-            }
-
-            for (int i = 0; i < sumsFromKernels.GetLength(0); i++) {
-                for (int j = 0; j < 3; j++) {
-                    final[j] += sumsFromKernels[i][j];
-                }
-            }
-
-            final = final.Select(el => Math.Sqrt(el)).ToArray();
-
-            return final; 
+            return sumsFromKernels;
         }
         
         private static double[,] generateGaussianKernel(double weight, int size) {
@@ -362,7 +341,7 @@ namespace ConsoleApplication1 {
             for (int y = 0; y < bmp.Height; y++) {
                 for (int x = 0; x < bmp.Width; x++) {
                     c = bmp.GetPixel(x, y);
-                    rgb = (int)((c.R + c.G + c.B) / 3);
+                    rgb = ((c.R + c.G + c.B) / 3);
                     bmp.SetPixel(x, y, Color.FromArgb(rgb, rgb, rgb));
                 }
             }
