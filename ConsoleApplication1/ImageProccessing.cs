@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace ConsoleApplication1 {
     internal class ImageProccessing {
@@ -60,40 +62,42 @@ namespace ConsoleApplication1 {
             backup();
             bmpBack.LockBits();
             bmp.LockBits();
-
+            int height = img.Height;
+            int width = img.Width;
 
             convulutionValues = new double[bmp.Width, bmp.Height][][];
 
-            for (int y = 0; y < bmp.Height; y++) {
-                for (int x = 0; x < bmp.Width; x++) {
+            Parallel.For(0, bmp.Height * bmp.Width, (q, state) => {
+                int y = q / width;
+                int x = q - y * width;
 
-                    double[][,] kernelsToApply = new double[][,]{
+                double[][,] kernelsToApply = new double[][,]{
                         generateSobelKernel(sobel.Vertical),
                         generateSobelKernel(sobel.Horizontal),
                         generateSobelKernel(sobel.DiagonalB),
                         generateSobelKernel(sobel.DiagonalF)
                     };
 
-                    convulutionValues[x, y] = applyConvolutionKernels(
-                        kernelsToApply, x, y, true
-                    );
+                convulutionValues[x, y] = applyConvolutionKernels(
+                    kernelsToApply, x, y, true
+                );
 
-                    double[] limtedValues = sumSqrt(convulutionValues[x, y]);
+                double[] limtedValues = sumSqrt(convulutionValues[x, y]);
 
-                    for (int i = 0; i < limtedValues.GetLength(0); i++) {
-                        limtedValues[i] = limtedValues[i] > 255 ? 255 : limtedValues[i];
-                        limtedValues[i] = limtedValues[i] < 0 ? 0 : limtedValues[i];
-                    }
-                    
-                    bmp.SetPixel(x, y,
-                        Color.FromArgb((int)limtedValues[0], (int)limtedValues[1], (int)limtedValues[2])
-                   );
+                for (int i = 0; i < limtedValues.GetLength(0); i++) {
+                    limtedValues[i] = limtedValues[i] > 255 ? 255 : limtedValues[i];
+                    limtedValues[i] = limtedValues[i] < 0 ? 0 : limtedValues[i];
                 }
-            }
+
+                bmp.SetPixel(x, y,
+                    Color.FromArgb((int)limtedValues[0], (int)limtedValues[1], (int)limtedValues[2])
+               );
+            });
 
 
             bmpBack.UnlockBits();
             bmp.UnlockBits();
+
             return this;
         }
 
@@ -120,27 +124,29 @@ namespace ConsoleApplication1 {
             bmp.LockBits(); 
             backup();
             bmpBack.LockBits();
+            
 
-            Color color;
-            double[] sum;
             // This is our Gaussian Convulated Kernel
             double[,] kernel = generateGaussianKernel(weight, kernelSize);
+            int height = img.Height;
+            int width = img.Width;
+            Parallel.For(0, bmp.Height * bmp.Width, (q, state) => {
+                int y = q / width;
+                int x = q - y * width;
 
-            for (int y = 0; y < bmp.Height; y++) {
-                for (int x = 0; x < bmp.Width; x++) {
+                Color color;
+                double[] sum = applyConvolutionKernels(new double[][,] { kernel }, x, y);
 
-                    sum = applyConvolutionKernels(new double[][,] { kernel }, x, y);
-
-                    for (int i = 0; i < sum.GetLength(0); i++) {
-                        sum[i] = sum[i] > 255 ? 255 : sum[i];
-                        sum[i] = sum[i] < 0 ? 0 : sum[i];
-                    }
-
-                    color = Color.FromArgb((int)sum[0], (int)sum[1], (int)sum[2]);
-
-                    bmp.SetPixel(x, y, color);
+                for (int i = 0; i < sum.GetLength(0); i++) {
+                    sum[i] = sum[i] > 255 ? 255 : sum[i];
+                    sum[i] = sum[i] < 0 ? 0 : sum[i];
                 }
-            }
+
+                color = Color.FromArgb((int)sum[0], (int)sum[1], (int)sum[2]);
+
+                bmp.SetPixel(x, y, color);
+            });
+
             bmpBack.UnlockBits();
             bmp.UnlockBits();
             return this;
@@ -148,12 +154,11 @@ namespace ConsoleApplication1 {
 
         public ImageProccessing nonMaximumSurrpression() {
             Assert.IsNotNull(convulutionValues);
-
             bmp.LockBits();
-            float tangent = 0.0F;
-            double color;
+            
             double[,] Gradient = new double[img.Width, img.Height];
             double[,] NonMax = new double[img.Width, img.Height];
+
             for (int Y = 0; Y < img.Height; Y++) {
                 for (int X = 0; X < img.Width; X++) {
                     Gradient[X, Y] = sumSqrt(convulutionValues[X, Y])[0] / 180;
@@ -161,51 +166,56 @@ namespace ConsoleApplication1 {
                 }
             }
 
-            for (int Y = 0; Y < img.Height; Y++) {
-                for (int X = 0; X < img.Width; X++) {
+            int height = img.Height;
+            int width = img.Width;
 
-                    // Just drop values outside the image (you could do something else)
-                    if (Y - 1 < 0 || X - 1 < 0 || Y + 2 > bmp.Height || X + 2 > bmp.Width) {
-                        continue;
-                    }
-                    
-                    if (convulutionValues[X, Y][0][0] == 0) {
-                        tangent = 90F;
-                    } else {
-                        // converting radians to degrees
-                        tangent = (float)
-                            (Math.Atan2(convulutionValues[X, Y][0][1], convulutionValues[X, Y][0][0]));
-                    }
-                    
-                    //Horizontal Edge
-                    if (((-22.5 < tangent) && (tangent <= 22.5)) || ((157.5 < tangent) && (tangent <= -157.5))) {
-                        if ((Gradient[X, Y] < Gradient[X, Y + 1]) || (Gradient[X, Y] < Gradient[X, Y - 1]))
-                            NonMax[X, Y] = 0;
-                    }
-
-                    //Vertical Edge
-                    if (((-112.5 < tangent) && (tangent <= -67.5)) || ((67.5 < tangent) && (tangent <= 112.5))) {
-                        if ((Gradient[X, Y] < Gradient[X + 1, Y]) || (Gradient[X, Y] < Gradient[X - 1, Y]))
-                            NonMax[X, Y] = 0;
-                    }
-
-                    //+45 Degree Edge
-                    if (((-67.5 < tangent) && (tangent <= -22.5)) || ((112.5 < tangent) && (tangent <= 157.5))) {
-                        if ((Gradient[X, Y] < Gradient[X + 1, Y - 1]) || (Gradient[X, Y] < Gradient[X - 1, Y + 1]))
-                            NonMax[X, Y] = 0;
-                    }
-
-                    //-45 Degree Edge
-                    if (((-157.5 < tangent) && (tangent <= -112.5)) || ((67.5 < tangent) && (tangent <= 22.5))) {
-                        if ((Gradient[X, Y] < Gradient[X + 1, Y + 1]) || (Gradient[X, Y] < Gradient[X - 1, Y - 1]))
-                            NonMax[X, Y] = 0;
-                    }
-
-                    color = NonMax[X, Y] > 255 ? 255 : NonMax[X, Y] < 0 ? 0 : NonMax[X, Y];
-
-                    bmp.SetPixel(X, Y, Color.FromArgb((int) color, (int) color, (int) color));
+            Parallel.For(0, bmp.Height * bmp.Width, (q, state) => {
+                int Y = q / width;
+                int X = q - Y * width;
+                float tangent = 0.0F;
+                // Just drop values outside the image (you could do something else)
+                if (Y - 1 < 0 || X - 1 < 0 || Y + 2 > bmp.Height || X + 2 > bmp.Width) {
+                    return;
                 }
-            }
+
+                if (convulutionValues[X, Y][0][0] == 0) {
+                    tangent = 90F;
+                }
+                else {
+                    // converting radians to degrees
+                    tangent = (float)
+                        (Math.Atan2(convulutionValues[X, Y][0][1], convulutionValues[X, Y][0][0]));
+                }
+
+                //Horizontal Edge
+                if (((-22.5 < tangent) && (tangent <= 22.5)) || ((157.5 < tangent) && (tangent <= -157.5))) {
+                    if ((Gradient[X, Y] < Gradient[X, Y + 1]) || (Gradient[X, Y] < Gradient[X, Y - 1]))
+                        NonMax[X, Y] = 0;
+                }
+
+                //Vertical Edge
+                if (((-112.5 < tangent) && (tangent <= -67.5)) || ((67.5 < tangent) && (tangent <= 112.5))) {
+                    if ((Gradient[X, Y] < Gradient[X + 1, Y]) || (Gradient[X, Y] < Gradient[X - 1, Y]))
+                        NonMax[X, Y] = 0;
+                }
+
+                //+45 Degree Edge
+                if (((-67.5 < tangent) && (tangent <= -22.5)) || ((112.5 < tangent) && (tangent <= 157.5))) {
+                    if ((Gradient[X, Y] < Gradient[X + 1, Y - 1]) || (Gradient[X, Y] < Gradient[X - 1, Y + 1]))
+                        NonMax[X, Y] = 0;
+                }
+
+                //-45 Degree Edge
+                if (((-157.5 < tangent) && (tangent <= -112.5)) || ((67.5 < tangent) && (tangent <= 22.5))) {
+                    if ((Gradient[X, Y] < Gradient[X + 1, Y + 1]) || (Gradient[X, Y] < Gradient[X - 1, Y - 1]))
+                        NonMax[X, Y] = 0;
+                }
+
+                double color = NonMax[X, Y] > 255 ? 255 : NonMax[X, Y] < 0 ? 0 : NonMax[X, Y];
+
+                bmp.SetPixel(X, Y, Color.FromArgb((int)color, (int)color, (int)color));
+
+            });
 
             bmp.UnlockBits();
             return this;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 
@@ -21,7 +22,20 @@ namespace ConsoleApplication1{
 
                 return;
             }
+            // Gaussian Test:
+            // Single:    00:00:01.1993384
+            // Parallel:  00:00:00.4254463
 
+            // Sobel Test:
+            // Single:    00:00:02.2536225
+            // Parallel:  00:00:01.1190212
+
+            // Fullsize test
+            // Single:   25s
+            // Parallel: 13s
+            // 52% improvement with 8 cores
+
+            //DateTime t0 = DateTime.Now;
             img = new ImageProccessing(img)
                 .resize(500,500)
                 .convertToBlackAndWhite()
@@ -30,6 +44,7 @@ namespace ConsoleApplication1{
                 .Limit(60, 60, 60)
                 .nonMaximumSurrpression()
                 .build();
+            //Console.WriteLine(DateTime.Now - t0);
 
             img.Save("cup_result.png", ImageFormat.Png);
 
@@ -37,7 +52,8 @@ namespace ConsoleApplication1{
 
             merged.Save("beforeAndAfter.png",ImageFormat.Png);
 
-            Console.WriteLine("Press enter to close...");
+            Process.Start(@"beforeAndAfter.png");
+
             Console.ReadLine();
         }
        
