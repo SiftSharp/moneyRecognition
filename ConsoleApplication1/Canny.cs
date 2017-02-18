@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
+﻿using System;
 using System.Drawing;
 
 namespace ConsoleApplication1 {
@@ -240,8 +239,7 @@ namespace ConsoleApplication1 {
 
 
         private void hysterisisThresholding(int[,] edges) {
-            Assert.IsNotNull(edgeMap);
-
+            
             int x, y;
             int limit = kernelSize / 2;
 

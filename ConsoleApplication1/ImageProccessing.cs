@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
@@ -151,8 +150,7 @@ namespace ConsoleApplication1 {
         }
 
         public ImageProccessing nonMaximumSurrpression() {
-            Assert.IsNotNull(convulutionValues);
-            bmp.LockBits();
+                        bmp.LockBits();
 
             int height = img.Height;
             int width = img.Width;
@@ -278,10 +276,7 @@ namespace ConsoleApplication1 {
 
         private double[][] applyConvolutionKernels(double[][,] kernels, int x, int y, bool returnRaw) {
             // The backup image and the actual image should be same dimensions
-            Assert.AreEqual(bmp.Width, bmpBack.Width);
-            Assert.AreEqual(bmp.Height, bmpBack.Height);
-            Assert.IsNotNull(kernels);
-
+                                    
             int kernelRadius = kernels[0].GetLength(0) / 2;
             Color color;
             double[][] sumsFromKernels = new double[kernels.GetLength(0)][];
