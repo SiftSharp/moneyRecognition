@@ -5,7 +5,6 @@ Preview of current state
 ![Preview](/beforeAndAfter_3.png)
 ---
 
-Steps to follow:
-* Non-maximum suppression
-* Double threshold
-* Edge tracking by hysteresis
+Next steps:
+* Corner Detection
+* CNN layers

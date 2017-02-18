@@ -18,6 +18,8 @@ namespace ConsoleApplication1 {
             DiagonalF,
             DiagonalB
         };
+        private double k = 0.04;
+        private double threshold = 10000000;
         private double[,][][] convulutionValues;
 
 
@@ -64,20 +66,16 @@ namespace ConsoleApplication1 {
             bmp.LockBits();
             int height = img.Height;
             int width = img.Width;
-
+            double[][,] kernelsToApply = new double[][,]{
+                generateSobelKernel(sobel.Vertical),
+                generateSobelKernel(sobel.Horizontal)
+            };
             convulutionValues = new double[bmp.Width, bmp.Height][][];
 
             Parallel.For(0, bmp.Height * bmp.Width, (q, state) => {
                 int y = q / width;
                 int x = q - y * width;
-
-                double[][,] kernelsToApply = new double[][,]{
-                        generateSobelKernel(sobel.Vertical),
-                        generateSobelKernel(sobel.Horizontal),
-                        generateSobelKernel(sobel.DiagonalB),
-                        generateSobelKernel(sobel.DiagonalF)
-                    };
-
+                
                 convulutionValues[x, y] = applyConvolutionKernels(
                     kernelsToApply, x, y, true
                 );
@@ -86,11 +84,11 @@ namespace ConsoleApplication1 {
 
                 for (int i = 0; i < limtedValues.GetLength(0); i++) {
                     limtedValues[i] = limtedValues[i] > 255 ? 255 : limtedValues[i];
-                    limtedValues[i] = limtedValues[i] < 0 ? 0 : limtedValues[i];
+                    limtedValues[i] = limtedValues[i] <   0 ?   0 : limtedValues[i];
                 }
 
                 bmp.SetPixel(x, y,
-                    Color.FromArgb((int)limtedValues[0], (int)limtedValues[1], (int)limtedValues[2])
+                    Color.FromArgb((int)limtedValues[0], (int)limtedValues[0], (int)limtedValues[0])
                );
             });
 
@@ -112,7 +110,7 @@ namespace ConsoleApplication1 {
                     tg = pc.G < r ? 0 : pc.G;
                     tb = pc.B < r ? 0 : pc.B;
 
-                    bmp.SetPixel(x, y, Color.FromArgb(tr,tg,tb));
+                    bmp.SetPixel(x, y, Color.FromArgb(tr,tr,tr));
                 }
             }
 
@@ -142,7 +140,7 @@ namespace ConsoleApplication1 {
                     sum[i] = sum[i] < 0 ? 0 : sum[i];
                 }
 
-                color = Color.FromArgb((int)sum[0], (int)sum[1], (int)sum[2]);
+                color = Color.FromArgb((int)sum[0], (int)sum[0], (int)sum[0]);
 
                 bmp.SetPixel(x, y, color);
             });
@@ -155,19 +153,32 @@ namespace ConsoleApplication1 {
         public ImageProccessing nonMaximumSurrpression() {
             Assert.IsNotNull(convulutionValues);
             bmp.LockBits();
-            
-            double[,] Gradient = new double[img.Width, img.Height];
-            double[,] NonMax = new double[img.Width, img.Height];
+
+            int height = img.Height;
+            int width = img.Width;
+            double[,] Gradient = new double[width, height];
+            double[,] NonMax = new double[width, height];
+            int[,] PostHysteresis = new int[width, height];
 
             for (int Y = 0; Y < img.Height; Y++) {
                 for (int X = 0; X < img.Width; X++) {
-                    Gradient[X, Y] = sumSqrt(convulutionValues[X, Y])[0] / 180;
+                    Gradient[X, Y] = (float)Math.Sqrt(Math.Pow(convulutionValues[X, Y][0][0],2) + Math.Pow(convulutionValues[X, Y][1][0], 2));
                     NonMax[X, Y] = Gradient[X, Y];
                 }
             }
 
-            int height = img.Height;
-            int width = img.Width;
+
+            /*for (int Y = 0; Y < img.Height; Y++) {
+                for (int X = 0; X < img.Width; X++) {
+                    Gradient[X, Y] = sumSqrt(convulutionValues[X, Y])[0] / 180;
+                    NonMax[X, Y] = Gradient[X, Y];
+                }
+            }*/
+
+            
+            int r, c;
+            int Limit = 3/2;
+
 
             Parallel.For(0, bmp.Height * bmp.Width, (q, state) => {
                 int Y = q / width;
@@ -184,8 +195,16 @@ namespace ConsoleApplication1 {
                 else {
                     // converting radians to degrees
                     tangent = (float)
-                        (Math.Atan2(convulutionValues[X, Y][0][1], convulutionValues[X, Y][0][0]));
+                        (Math.Atan(
+                            Math.Pow(convulutionValues[X, Y][0][0],2) / 
+                            Math.Pow(convulutionValues[X, Y][1][0],2)
+                        ) * 180 / Math.PI
+                    );
+                    //tangent = (float)
+                    //    (Math.Atan2(convulutionValues[X, Y][0][0], convulutionValues[X, Y][1][0]));
                 }
+
+                //Console.WriteLine("{0}: {1},{2}",tangent, convulutionValues[X, Y][0][0], convulutionValues[X, Y][1][0]);
 
                 //Horizontal Edge
                 if (((-22.5 < tangent) && (tangent <= 22.5)) || ((157.5 < tangent) && (tangent <= -157.5))) {
@@ -212,10 +231,19 @@ namespace ConsoleApplication1 {
                 }
 
                 double color = NonMax[X, Y] > 255 ? 255 : NonMax[X, Y] < 0 ? 0 : NonMax[X, Y];
-
-                bmp.SetPixel(X, Y, Color.FromArgb((int)color, (int)color, (int)color));
-
+    
+                bmp.SetPixel(X, Y, Color.FromArgb((int)color, (int)color, (int)color));                
             });
+
+            //PostHysteresis = NonMax;
+            for (r = Limit; r <= (width - Limit) - 1; r++) {
+                for (c = Limit; c <= (height - Limit) - 1; c++) {
+
+                    PostHysteresis[r, c] = (int)NonMax[r, c];
+                }
+
+            }
+
 
             bmp.UnlockBits();
             return this;
@@ -277,8 +305,8 @@ namespace ConsoleApplication1 {
                         color = bmpBack.GetPixel(X, Y);
                         
                         sumsFromKernels[i][0] += color.R * kernels[i][X - (x - kernelRadius), Y - (y - kernelRadius)];
-                        sumsFromKernels[i][1] += color.G * kernels[i][X - (x - kernelRadius), Y - (y - kernelRadius)];
-                        sumsFromKernels[i][2] += color.B * kernels[i][X - (x - kernelRadius), Y - (y - kernelRadius)];
+                        //sumsFromKernels[i][1] += color.G * kernels[i][X - (x - kernelRadius), Y - (y - kernelRadius)];
+                        //sumsFromKernels[i][2] += color.B * kernels[i][X - (x - kernelRadius), Y - (y - kernelRadius)];
                     }
 
                     amountOfActivePixels++;

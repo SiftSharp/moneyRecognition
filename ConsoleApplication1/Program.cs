@@ -7,12 +7,23 @@ namespace ConsoleApplication1{
     class Program{
 
         private static Bitmap img;
-        private static string file = "../../../object.png";
+        private static string[] files = {
+            "text.png",
+            "text_logo.png",
+            "checkerboard.png",
+            "cup.png",
+            "cup2.png",
+            "object.png",
+            "wikiExample.png",
+            "wikiExample2.png"
+        };
+        private static int chosenFile = 6;
 
         static void Main(string[] args){
+            int width, height;
             Console.WriteLine("Loading image...");
             try{
-                img = new Bitmap(file);
+                img = new Bitmap("../../../objects/" + files[chosenFile]);
             } catch (ArgumentException e){
                 Console.WriteLine(
                     "{0}: {1}, probable cause is that the file wasn't found", 
@@ -22,33 +33,26 @@ namespace ConsoleApplication1{
 
                 return;
             }
-            // Gaussian Test:
-            // Single:    00:00:01.1993384
-            // Parallel:  00:00:00.4254463
+            width = height = 707;
 
-            // Sobel Test:
-            // Single:    00:00:02.2536225
-            // Parallel:  00:00:01.1190212
 
-            // Fullsize test
-            // Single:   25s
-            // Parallel: 13s
-            // 52% improvement with 8 cores
-
-            //DateTime t0 = DateTime.Now;
-            img = new ImageProccessing(img)
-                .resize(500,500)
+            DateTime t0 = DateTime.Now;
+            /*img = new ImageProccessing(img)
+                .resize(width,height)
                 .convertToBlackAndWhite()
-                .Gaussian(1.5, 5)
+                .Gaussian(1.5, 3)
                 .SobelSupression()
                 .Limit(60, 60, 60)
                 .nonMaximumSurrpression()
-                .build();
-            //Console.WriteLine(DateTime.Now - t0);
+                .build();*/
 
-            img.Save("cup_result.png", ImageFormat.Png);
+            Canny cannyData = new Canny(img, width, height);
+            img = cannyData.buildImage(cannyData.edgeMap);
+            Console.WriteLine(DateTime.Now - t0);
 
-            Bitmap merged = resultMerge(new ImageProccessing(new Bitmap(file)).resize(500,500).build(), img);
+            img.Save("results.png", ImageFormat.Png);
+
+            Bitmap merged = resultMerge(new ImageProccessing(new Bitmap("../../../objects/"+files[chosenFile])).resize(width,height).build(), img);
 
             merged.Save("beforeAndAfter.png",ImageFormat.Png);
 
