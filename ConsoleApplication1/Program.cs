@@ -15,50 +15,44 @@ namespace ConsoleApplication1{
             "cup2.png",
             "object.png",
             "wikiExample.png",
-            "wikiExample2.png"
+            "wikiExample2.png",
+            "pepsi.png",
+            "Corner.png"
         };
-        private static int chosenFile = 6;
+        private static int chosenFile = 9;
+        private static Canny cannyData;
 
-        static void Main(string[] args){
+        static void Main(string[] args) {
             int width, height;
             Console.WriteLine("Loading image...");
-            try{
+            try {
                 img = new Bitmap("../../../objects/" + files[chosenFile]);
-            } catch (ArgumentException e){
+            } catch (ArgumentException e) {
                 Console.WriteLine(
-                    "{0}: {1}, probable cause is that the file wasn't found", 
-                    e.GetType().Name, 
+                    "{0}: {1}, probable cause is that the file wasn't found",
+                    e.GetType().Name,
                     e.Message
                 );
 
                 return;
             }
-            width = height = 707;
-
+            width = height = 500;
 
             DateTime t0 = DateTime.Now;
-            /*img = new ImageProccessing(img)
-                .resize(width,height)
-                .convertToBlackAndWhite()
-                .Gaussian(1.5, 3)
-                .SobelSupression()
-                .Limit(60, 60, 60)
-                .nonMaximumSurrpression()
-                .build();*/
 
-            Canny cannyData = new Canny(img, width, height);
-            img = cannyData.buildImage(cannyData.edgeMap);
+            cannyData = new Canny(img, width, height);
+            img = cannyData.buildImage(cannyData.hcr2);
             Console.WriteLine(DateTime.Now - t0);
 
             img.Save("results.png", ImageFormat.Png);
 
-            Bitmap merged = resultMerge(new ImageProccessing(new Bitmap("../../../objects/"+files[chosenFile])).resize(width,height).build(), img);
+            Bitmap merged = resultMerge(new ImageProccessing(new Bitmap("../../../objects/" + files[chosenFile])).resize(width, height).build(), img);
 
-            merged.Save("beforeAndAfter.png",ImageFormat.Png);
+            merged.Save("beforeAndAfter.png", ImageFormat.Png);
 
             Process.Start(@"beforeAndAfter.png");
 
-            Console.ReadLine();
+            //Console.Read();
         }
        
 

@@ -47,8 +47,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Canny.cs" />
+    <Compile Include="Gaussian.cs" />
     <Compile Include="ImageProccessing.cs" />
     <Compile Include="LockBitmap.cs" />
+    <Compile Include="NonMax.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

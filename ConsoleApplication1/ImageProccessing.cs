@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
 
 namespace ConsoleApplication1 {
     internal class ImageProccessing {
@@ -17,8 +15,6 @@ namespace ConsoleApplication1 {
             DiagonalF,
             DiagonalB
         };
-        private double k = 0.04;
-        private double threshold = 10000000;
         private double[,][][] convulutionValues;
 
 

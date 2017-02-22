@@ -7,35 +7,38 @@ namespace ConsoleApplication1 {
         private int width;
         private int height;
         private int kernelSize = 5;
+        float k = 0.04F;
+        float threshold = 10000000F;
         private float maxHysteresisThresh;
         private float minHysteresisThresh;
+        
         private int[,] edgePoints;
 
         public int[,] greyImage;
-        public int[,] filteredImage;
         public int[,] edgeMap;
         public int[,] visitedMap;
+        public int[,] harriCorners;
 
-        public float[,] derivativeX;
-        public float[,] derivativeY;
+        public float[,] filteredImage;
         public float[,] gradient;
         public float[,] nonMax;
         public float[,] GNH;
         public float[,] GNL;
-        public enum sobel {
-            Horizontal,
-            Vertical,
-            DiagonalF,
-            DiagonalB
-        };
+        public float[,] hcr;
+        public int[,] hcr2;
+
+        public float[,] derivativeX;
+        public float[,] derivativeY;
+        public float[,] derivativeXY;
+
 
         public Canny(Bitmap img, int width, int height) {
             this.img = img;
             this.width = width;
             this.height = height;
 
-            this.maxHysteresisThresh = 40F;
-            this.minHysteresisThresh = maxHysteresisThresh - 5;
+            this.maxHysteresisThresh = 30F;
+            this.minHysteresisThresh = maxHysteresisThresh - 10;
 
             if (height != img.Height || width != img.Width) {
                 this.img = resize(this.img, width, height);
@@ -45,7 +48,6 @@ namespace ConsoleApplication1 {
 
             edgeMap = new int[width, height];
             visitedMap = new int[width, height];
-            
 
             this.greyImage = readImage(this.img);
             cannyEdgeDetect();
@@ -53,6 +55,33 @@ namespace ConsoleApplication1 {
 
         public Canny(Bitmap img) :this(img, img.Width, img.Height) { }
 
+        /// <summary>
+        ///     Resizes a bitmap to a given size and respects ratio
+        /// </summary>
+        /// <param name="input">A bitmap input image</param>
+        /// <param name="maxWidth">Max width of the output image</param>
+        /// <param name="maxHeight">Max height of the output image</param>
+        /// <returns>Resized image</returns>
+        public Bitmap resize(Bitmap input, int maxWidth, int maxHeight) {
+
+            double ratioX = (double)maxWidth / input.Width;
+            double ratioY = (double)maxHeight / input.Height;
+            double ratio = Math.Min(ratioX, ratioY);
+
+            int newWidth = (int)(input.Width * ratio);
+            int newHeight = (int)(input.Height * ratio);
+
+            Bitmap newImage = new Bitmap(newWidth, newHeight);
+
+            using (Graphics graphics = Graphics.FromImage(newImage)) {
+                graphics.DrawImage(input, 0, 0, newWidth, newHeight);
+            }
+
+            input = newImage.Clone(new Rectangle(0, 0, newImage.Width, newImage.Height), newImage.PixelFormat);
+
+            return input;
+        }
+        
         /// <summary>
         ///     Reads an input bitmap and generates
         ///     a B&W data output
@@ -131,46 +160,30 @@ namespace ConsoleApplication1 {
             return buildImage(greyImage);
         }
 
-        private float hypot(float inputA, float inputB) {
-            return (float) Math.Sqrt(inputA * inputA + inputB * inputB);
-        }
-
         private void cannyEdgeDetect() {
-            int x, y;
             int limit = kernelSize / 2;
-
+            NonMax nonMaxInst = new NonMax();
             // Initialize the different step-arrays
-            gradient       = new float[width, height];
-            nonMax         = new float[width, height];
-            derivativeX    = new float[width, height];
-            derivativeY    = new float[width, height];
             GNH            = new float[width, height];
             GNL            = new float[width, height];
             edgePoints     = new   int[width, height];
-
+            
             // Filter/blur image
-            filteredImage = gaussianFilter(this.greyImage);
+            filteredImage = new Gaussian().gaussianFilter(greyImage);
+            // NonMax, derivatives and gradient calculations
+            nonMax = nonMaxInst.nonMaxSurpress(filteredImage);
+            derivativeX = nonMaxInst.derivativeX;
+            derivativeY = nonMaxInst.derivativeY;
+            derivativeXY = nonMaxInst.derivativeXY;
+            // Gradient is calculated in NonMax
+            gradient = nonMaxInst.gradient;
 
-            // Generate derivatives of image
-            derivativeX = differentiate(filteredImage, getSobelKernel(sobel.Horizontal));
-            derivativeY = differentiate(filteredImage, getSobelKernel(sobel.Vertical));
-
-            // Based on the derivatives from X & Y we can calculated the gradient
-            for (x = 0; x < width; x++) {
-                for (y = 0; y < height; y++) {
-                    gradient[x, y] = hypot(derivativeX[x, y], derivativeY[x, y]);
-                }
-            }
-
-            // NonMax = Gradient. Copy Gradient into NonMax without ref
-            nonMax = (float[,]) gradient.Clone();
-
-            nonMaxSurpress();
-            postHysteresis();
+            postHysteresis(nonMax);
             hysterisisThresholding(edgePoints);
+            harrisCorners();
         }
 
-        private void postHysteresis() {
+        private void postHysteresis(float[,] nonMax) {
             int r, c;
             int limit = kernelSize / 2;
             float min = 100, max = 0;
@@ -200,43 +213,6 @@ namespace ConsoleApplication1 {
                 }
             }
         }
-
-        private void nonMaxSurpress() {
-            int x, y;
-            float tangent;
-            int limit = kernelSize / 2;
-
-            for (x = limit; x < width - limit; x++) {
-                for (y = limit; y < height - limit; y++) {
-                    if (derivativeX[x, y] == 0) {
-                        tangent = 90F;
-                    } else {
-                        tangent = (float)(Math.Atan2(derivativeY[x, y], derivativeX[x, y]));
-                    }
-                    //Horizontal Edge
-                    if (((-22.5 < tangent) && (tangent <= 22.5)) || ((157.5 < tangent) && (tangent <= -157.5))) {
-                        if ((gradient[x, y] < gradient[x, y + 1]) || (gradient[x, y] < gradient[x, y - 1]))
-                            nonMax[x, y] = 0;
-                    }
-                    //Vertical Edge
-                    if (((-112.5 < tangent) && (tangent <= -67.5)) || ((67.5 < tangent) && (tangent <= 112.5))) {
-                        if ((gradient[x, y] < gradient[x + 1, y]) || (gradient[x, y] < gradient[x - 1, y]))
-                            nonMax[x, y] = 0;
-                    }
-                    //+45 Degree Edge
-                    if (((-67.5 < tangent) && (tangent <= -22.5)) || ((112.5 < tangent) && (tangent <= 157.5))) {
-                        if ((gradient[x, y] < gradient[x + 1, y - 1]) || (gradient[x, y] < gradient[x - 1, y + 1]))
-                            nonMax[x, y] = 0;
-                    }
-                    //-45 Degree Edge
-                    if (((-157.5 < tangent) && (tangent <= -112.5)) || ((67.5 < tangent) && (tangent <= 22.5))) {
-                        if ((gradient[x, y] < gradient[x + 1, y + 1]) || (gradient[x, y] < gradient[x - 1, y - 1]))
-                            nonMax[x, y] = 0;
-                    }
-                }
-            }
-        }
-
 
         private void hysterisisThresholding(int[,] edges) {
             
@@ -332,139 +308,71 @@ namespace ConsoleApplication1 {
             visitedMap[X, Y] = 1;
         }
 
+        private void harrisCorners() {
+            hcr = new float[width, height];
+            harriCorners = new int[width, height];
+            NonMax nonMaxInst = new NonMax();
+            Gaussian gaussian = new Gaussian();
+            derivativeX = gaussian.gaussianFilter(derivativeX);
+            derivativeY = gaussian.gaussianFilter(derivativeY);
+            derivativeXY = gaussian.gaussianFilter(derivativeXY);
 
-        private int[,] gaussianFilter(int[,] data) {
-            int[,] output = new int[width, height];
-            int size = 2;
-            float sigma = 10.4F;
-            int i, j, k, l; // for variables
-            float sum = 0;
+            float val = 0;
+            float A, B, C;
 
-            // Generate 
-            double[,] gaussianKernel = generateGaussianKernel(sigma, size);
-            int limit = gaussianKernel.GetLength(0) / 2;
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    A = derivativeX[x, y];
+                    B = derivativeY[x, y];
+                    C = derivativeXY[x, y];
+                    val = ((A * B - (C * C)) - (k * ((A + B) * (A + B))));
 
-            // Copy values for persistant read
-            output = data; 
-
-            for (i = limit; i < width - limit; i++) {
-                for (j = limit; j < height - limit; j++) {
-                    sum = 0;
-                    for (k = -limit; k <= limit; k++) {
-                        for (l = -limit; l <= limit; l++) {
-                            sum = sum + (data[i + k, j + l] * (float)gaussianKernel[limit + k, limit + l]);
-                        }
+                    if (val > threshold) {
+                        //Console.WriteLine("yay");
+                        hcr[x, y] = val;
+                    } else {
+                        hcr[x, y] = 0;
                     }
-                    output[i, j] = (int) sum;
                 }
             }
 
-            return output;
-        }
+            hcr = nonMaxInst.nonMaxSurpress(hcr);
+            hcr2 = (int[,]) greyImage.Clone();
+            int offsetSize = 2;
 
-        private float[,] differentiate(int[,] data, double[,] filter) {
-            int i, j, k, l, filterHeigt, filterWidth;
-
-            filterWidth = filter.GetLength(0);
-            filterHeigt = filter.GetLength(1);
-            float sum = 0;
-            float[,] output = new float[width, height];
-
-            for (i = filterWidth / 2; i < width - filterWidth / 2; i++) {
-                for (j = filterHeigt / 2; j < height - filterHeigt / 2; j++) {
-                    sum = 0;
-                    for (k = -filterWidth / 2; k <= filterWidth / 2; k++) {
-                        for (l = -filterHeigt / 2; l <= filterHeigt / 2; l++) {
-                            sum = sum + data[i + k, j + l] * (float)filter[filterWidth / 2 + k, filterHeigt / 2 + l];
+            for (int x = 3; x < width-3; x++) {
+                for (int y = 3; y < height-3; y++) {
+                    // Loopified version of max of nearest-neighbour
+                    /*if(hcr[x,y] > 10) {
+                        bool won = true;
+                        for(int offsetX = -offsetSize; offsetX < offsetSize; offsetX++) {
+                            for (int offsetY = -offsetSize; offsetY < offsetSize; offsetY++) {
+                                if(hcr[x, y] < hcr[x+offsetX, y+offsetY]) {
+                                    won = false;
+                                }
+                            }
                         }
+                        if (won) {
+                            hcr2[x, y] = 255;
+                        }
+                    }*/
+
+                    if (edgeMap[x, y] > 0) {
+                        hcr2[x, y] = 0;
                     }
-                    output[i, j] = sum;
+
+                    if ((hcr[x,y] > 0 && hcr[x, y] > hcr[x+1, y] && hcr[x, y] > hcr[x - 1, y] && 
+                        hcr[x, y] > hcr[x, y - 1] && hcr[x, y] > hcr[x, y + 1] && hcr[x, y] > hcr[x + 1, y + 1] &&
+                        hcr[x, y] > hcr[x + 1, y - 1] && hcr[x, y] > hcr[x - 1, y - 1] && hcr[x, y] > hcr[x - 1, y + 1])) {
+                        
+                        hcr2[x, y] = 255;
+                        hcr2[x+1, y] = 255;
+                        hcr2[x-1, y] = 255;
+                        hcr2[x, y+1] = 255;
+                        hcr2[x, y-1] = 255;
+                    }
                 }
             }
-            return output;
-        }
-
-        public Bitmap resize(Bitmap input, int maxWidth, int maxHeight) {
-
-            double ratioX = (double)maxWidth / input.Width;
-            double ratioY = (double)maxHeight / input.Height;
-            double ratio = Math.Min(ratioX, ratioY);
-
-            int newWidth = (int)(input.Width * ratio);
-            int newHeight = (int)(input.Height * ratio);
-
-            Bitmap newImage = new Bitmap(newWidth, newHeight);
-
-            using (Graphics graphics = Graphics.FromImage(newImage)) {
-                graphics.DrawImage(input, 0, 0, newWidth, newHeight);
-            }
-
-            input = newImage.Clone(new Rectangle(0, 0, newImage.Width, newImage.Height), newImage.PixelFormat);
-
-            return input;
-        }
-
-        private double[,] generateGaussianKernel(double weight, int size) {
-            size = 2 * size + 1;
-            double[,] kernel = new double[size, size];
-            int kernelRadius = size / 2;
-            double sum = 0;
-
-            for (int Y = -kernelRadius; Y <= kernelRadius; Y++) {
-                for (int X = -kernelRadius; X <= kernelRadius; X++) {
-                    kernel[X + kernelRadius, Y + kernelRadius] =
-                        calculateKernelEntity(X, Y, weight);
-
-                    sum += kernel[X + kernelRadius, Y + kernelRadius];
-                }
-            }
-
-            for (int y = 0; y < size; y++) {
-                for (int x = 0; x < size; x++) {
-                    kernel[x, y] *= 1.0 / sum;
-                }
-            }
-
-            return kernel;
-        }
-
-        private double[,] getSobelKernel(sobel direction) {
-            switch (direction) {
-                case sobel.Vertical:
-                    return new double[,] { 
-                        { -1, 0, 1 }, 
-                        { -2, 0, 2 }, 
-                        { -1, 0, 1 }
-                    };
-                case sobel.Horizontal:
-                    return new double[,] { 
-                        {  1,  2,  1 }, 
-                        {  0,  0,  0 }, 
-                        { -1, -2, -1 }
-                    };
-                case sobel.DiagonalF:
-                    return new double[,] { 
-                        { -2, -1,  0 }, 
-                        { -1,  0,  1 }, 
-                        {  0,  1,  2 }
-                    };
-                case sobel.DiagonalB:
-                    return new double[,] { 
-                        {  0, -1, -2 }, 
-                        {  1,  0, -1 }, 
-                        {  2,  1,  0 }
-                    };
-                default:
-                    return null;
-            }
-        }
-
-        private double calculateKernelEntity(int x, int y, double weight) {
-            // (1 / (2 * pi * (weight) ^ 2)) * e ^ (-((x ^ 2 + y ^ 2) / (2 * (weight) ^ 2)))
-            double a = 1 / (2 * Math.PI * weight * weight);
-            double b = ((x * x + y * y) / (2 * weight * weight));
-            double result = a * Math.Pow(Math.E, -b);
-            return result;
         }
     }
 }
