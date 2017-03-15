@@ -51,8 +51,6 @@ namespace ConsoleApplication1 {
                 for (y = 0; y < height; y++) {
                     gradient[x, y] = hypot(derivativeX[x, y], derivativeY[x, y]);
                     derivativeXY[x,y] = derivativeX[x,y] * derivativeY[x,y];
-                    derivativeX[x, y] = derivativeX[x, y] * derivativeX[x, y];
-                    derivativeY[x, y] = derivativeY[x, y] * derivativeY[x, y];
                 }
             }
 
@@ -64,6 +62,7 @@ namespace ConsoleApplication1 {
                         tangent = 90F;
                     } else {
                         tangent = (float)(Math.Atan2(derivativeY[x, y], derivativeX[x, y]));
+                        //tangent = (float) (Math.Atan(Math.Pow(derivativeY[x, y], 2) / Math.Pow(derivativeX[x, y], 2)) / Math.PI);
                     }
                     //Horizontal Edge
                     if (((-22.5 < tangent) && (tangent <= 22.5)) || ((157.5 < tangent) && (tangent <= -157.5))) {

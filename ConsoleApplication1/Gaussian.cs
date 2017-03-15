@@ -11,7 +11,7 @@ namespace ConsoleApplication1 {
         }
 
         public Gaussian(){
-            this.size = 2;
+            this.size = 3;
             this.sigma = 1.4F;
         }
 

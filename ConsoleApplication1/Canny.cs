@@ -9,6 +9,7 @@ namespace ConsoleApplication1 {
         private int kernelSize = 5;
         float k = 0.04F;
         float threshold = 10000000F;
+        private float sigma;
         private float maxHysteresisThresh;
         private float minHysteresisThresh;
         
@@ -31,14 +32,16 @@ namespace ConsoleApplication1 {
         public float[,] derivativeY;
         public float[,] derivativeXY;
 
+        public Canny(Bitmap img, int width, int height) :this(img,width,height,1.4F, 35F, 10F){}
 
-        public Canny(Bitmap img, int width, int height) {
+        public Canny(Bitmap img, int width, int height, float sigma, float maxHys, float minHys) {
             this.img = img;
             this.width = width;
             this.height = height;
+            this.sigma = sigma;
 
-            this.maxHysteresisThresh = 30F;
-            this.minHysteresisThresh = maxHysteresisThresh - 10;
+            this.maxHysteresisThresh = maxHys;
+            this.minHysteresisThresh = minHys;
 
             if (height != img.Height || width != img.Width) {
                 this.img = resize(this.img, width, height);
@@ -169,7 +172,7 @@ namespace ConsoleApplication1 {
             edgePoints     = new   int[width, height];
             
             // Filter/blur image
-            filteredImage = new Gaussian().gaussianFilter(greyImage);
+            filteredImage = new Gaussian(3,this.sigma).gaussianFilter(greyImage);
             // NonMax, derivatives and gradient calculations
             nonMax = nonMaxInst.nonMaxSurpress(filteredImage);
             derivativeX = nonMaxInst.derivativeX;
@@ -322,13 +325,12 @@ namespace ConsoleApplication1 {
 
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
-                    A = derivativeX[x, y];
-                    B = derivativeY[x, y];
+                    A = derivativeX[x, y] * derivativeX[x, y];
+                    B = derivativeY[x, y] * derivativeY[x, y];
                     C = derivativeXY[x, y];
                     val = ((A * B - (C * C)) - (k * ((A + B) * (A + B))));
 
                     if (val > threshold) {
-                        //Console.WriteLine("yay");
                         hcr[x, y] = val;
                     } else {
                         hcr[x, y] = 0;
@@ -338,24 +340,9 @@ namespace ConsoleApplication1 {
 
             hcr = nonMaxInst.nonMaxSurpress(hcr);
             hcr2 = (int[,]) greyImage.Clone();
-            int offsetSize = 2;
 
             for (int x = 3; x < width-3; x++) {
                 for (int y = 3; y < height-3; y++) {
-                    // Loopified version of max of nearest-neighbour
-                    /*if(hcr[x,y] > 10) {
-                        bool won = true;
-                        for(int offsetX = -offsetSize; offsetX < offsetSize; offsetX++) {
-                            for (int offsetY = -offsetSize; offsetY < offsetSize; offsetY++) {
-                                if(hcr[x, y] < hcr[x+offsetX, y+offsetY]) {
-                                    won = false;
-                                }
-                            }
-                        }
-                        if (won) {
-                            hcr2[x, y] = 255;
-                        }
-                    }*/
 
                     if (edgeMap[x, y] > 0) {
                         hcr2[x, y] = 0;

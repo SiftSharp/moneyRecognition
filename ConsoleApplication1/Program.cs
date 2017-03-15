@@ -19,11 +19,16 @@ namespace ConsoleApplication1{
             "pepsi.png",
             "Corner.png"
         };
-        private static int chosenFile = 9;
+        private static int chosenFile = 3;
         private static Canny cannyData;
 
+        [STAThread]
         static void Main(string[] args) {
-            int width, height;
+            Main mainForm = new Main();
+            mainForm.ShowDialog();
+
+            /*int width, height;
+
             Console.WriteLine("Loading image...");
             try {
                 img = new Bitmap("../../../objects/" + files[chosenFile]);
@@ -41,7 +46,7 @@ namespace ConsoleApplication1{
             DateTime t0 = DateTime.Now;
 
             cannyData = new Canny(img, width, height);
-            img = cannyData.buildImage(cannyData.hcr2);
+            img = cannyData.buildImage(cannyData.edgeMap);
             Console.WriteLine(DateTime.Now - t0);
 
             img.Save("results.png", ImageFormat.Png);
@@ -50,14 +55,11 @@ namespace ConsoleApplication1{
 
             merged.Save("beforeAndAfter.png", ImageFormat.Png);
 
-            Process.Start(@"beforeAndAfter.png");
-
-            //Console.Read();
+            //Process.Start(@"beforeAndAfter.png");
+            */
         }
-       
 
         static Bitmap resultMerge(Bitmap image1, Bitmap image2) {
-
             Bitmap bitmap = new Bitmap(
                 image1.Width + image2.Width, 
                 Math.Max(image1.Height, image2.Height)
