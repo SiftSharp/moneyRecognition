@@ -11,10 +11,9 @@ namespace SiftSharp {
         const int height = 512;
         static void Main(string[] args) {
             Size size = new Size(with, height);
-            Bitmap im = new Bitmap("coke.jpeg");
             Bitmap out_im = new Bitmap(with, height);
-            ResizeScale r = new ResizeScale();
-            out_im = r.ResizeImage(im, size);
+            SiftSharp.Image r = new SiftSharp.Image("coke.jpeg");
+            out_im = r.resize(size);
             out_im.Save("coke-out.png");
         }
     }

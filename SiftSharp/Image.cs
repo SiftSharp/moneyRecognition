@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 using System.Drawing;
 
 namespace SiftSharp {
-    class BoyeImage {
+    class Image {
         private Bitmap bitmapInput;
         private int[,] img;
 
-        public  BoyeImage(string path) {
+        public  Image(string path) {
             try {
                 bitmapInput = new Bitmap(path);
             }
@@ -57,7 +57,27 @@ namespace SiftSharp {
         }
 
 
-        public void resize() { }
+        public Bitmap resize(Size size)
+        {
+            try
+            {
+                Bitmap b = new Bitmap(size.Width, size.Height); // Create a new bitmap.
+                using (Graphics g = Graphics.FromImage(b))
+                {
+                    // sets interpolationmode to bicubic.
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    // interpolate the image.
+                    g.DrawImage(bitmapInput , 0, 0, size.Width, size.Height);
+                }
+                return b; // returning the resized bitmap.
+            }
+            catch  // Errorhandeling here.
+            {
+                Console.WriteLine("Bitmap could not be resized"); // Error msg.
+                return bitmapInput; // Return the non resized bitmap.
+            }
+        }
+
         public void scale() { }
         public void gaussian() { }
         public void convolve() { }
