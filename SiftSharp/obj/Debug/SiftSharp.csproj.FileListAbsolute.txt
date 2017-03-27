@@ -1,1 +1,7 @@
 C:\Users\hamburger\Documents\Visual Studio 2015\Projects\SiftSharp\SiftSharp\bin\Debug\SiftSharp.exe.config
+C:\Users\Dick G. Holm\objectRecognition\SiftSharp\bin\Debug\SiftSharp.exe.config
+C:\Users\Dick G. Holm\objectRecognition\SiftSharp\obj\Debug\SiftSharp.csprojResolveAssemblyReference.cache
+C:\Users\Dick G. Holm\objectRecognition\SiftSharp\bin\Debug\SiftSharp.exe
+C:\Users\Dick G. Holm\objectRecognition\SiftSharp\bin\Debug\SiftSharp.pdb
+C:\Users\Dick G. Holm\objectRecognition\SiftSharp\obj\Debug\SiftSharp.exe
+C:\Users\Dick G. Holm\objectRecognition\SiftSharp\obj\Debug\SiftSharp.pdb

@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 using System.Drawing;
 
 namespace SiftSharp {
-    class Image {
+    class BoyeImage {
         private Bitmap bitmapInput;
         private int[,] img;
 
-        public Image(string path) {
+        public  BoyeImage(string path) {
             try {
                 bitmapInput = new Bitmap(path);
             }
