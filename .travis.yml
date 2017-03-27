@@ -1,0 +1,10 @@
+language: csharp
+
+solution: ./SiftSharp.sln
+
+install:
+  - sudo apt-get install nunit-console
+  - nuget restore ./SiftSharp.sln
+
+script:
+  - xbuild ./SiftSharp.sln
