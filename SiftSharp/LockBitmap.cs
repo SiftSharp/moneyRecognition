@@ -18,7 +18,7 @@ namespace SiftSharp {
             this.source = source;
         }
 
-        /// <summary>
+        /// <summary
         /// Lock bitmap data
         /// </summary>
         public void LockBits() {

@@ -1,0 +1,5 @@
+/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/obj/Debug/.NETFramework,Version=v4.5.2.AssemblyAttribute.cs
+/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/bin/Debug/SiftSharp.exe.mdb
+/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/bin/Debug/SiftSharp.exe
+/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/obj/Debug/SiftSharp.exe
+/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/obj/Debug/SiftSharp.exe.mdb
