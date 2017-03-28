@@ -57,17 +57,17 @@ namespace SiftSharp {
         }
 
 
-        public Bitmap resize(Size size)
+        public Bitmap resize(Size newSize)
         {
             try
-            {
-                Bitmap b = new Bitmap(size.Width, size.Height); // Create a new bitmap.
-                using (Graphics g = Graphics.FromImage(b))
+            { 
+                Bitmap b = new Bitmap(newSize.Width, newSize.Height); // Create a new bitmap.
+                using (Graphics g = Graphics.FromImage(b))  // Graphics object from bitmap.
                 {
                     // sets interpolationmode to bicubic.
                     g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
                     // interpolate the image.
-                    g.DrawImage(bitmapInput , 0, 0, size.Width, size.Height);
+                    g.DrawImage(bitmapInput , 0, 0, newSize.Width, newSize.Height);
                 }
                 return b; // returning the resized bitmap.
             }
@@ -78,7 +78,27 @@ namespace SiftSharp {
             }
         }
 
-        public void scale() { }
+        /*
+         Creates Size object, scales it and calls resize.
+             */
+        public Bitmap scale(double scalePercent)
+        {
+            Size size;
+            size = new Size(bitmapInput.Width, bitmapInput.Height); //Create Size object.
+
+            if (Math.Abs(scalePercent - 0.1) < double.Epsilon) // The smallest possible float number.
+            {
+                return resize(size);
+            }
+            else
+            {   // Scales Size object.
+                double s = scalePercent / 100;
+                size.Width = (int)(size.Width * s);
+                size.Height = (int)(size.Height * s);
+            }
+            
+            return resize(size);
+        }
         public void gaussian() { }
         public void convolve() { }
         public void crossCorrelate() { }
