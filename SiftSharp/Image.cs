@@ -83,15 +83,14 @@ namespace SiftSharp {
 
             //Assumes that kernel size always will be same when multiple kernels should be applied
             int kernelHeight = kernels[0].GetLength(0), kernelWidth = kernels[0].GetLength(1);
-
             int kernelCenter = kernelHeight / 2;
             int numberOfKernels = kernels.GetLength(0);
 
             //Initialize array of 2D arrays with correct size
             float[][,] result = Enumerable
-                .Range(0, numberOfKernels)
-                .Select(_ =>  new float[imageWidth, imageHeight])
-                .ToArray();
+                .Range(0, numberOfKernels)//From 0 to the number of kernels
+                .Select(_ =>  new float[imageWidth, imageHeight])//Create new float
+                .ToArray();//Make it an array
 
             //Loops through image pixels
             for (int y = kernelCenter; y < (imageHeight - kernelCenter); y++)
@@ -117,10 +116,12 @@ namespace SiftSharp {
         {
             int arrayHeight = genericArray.GetLength(0), arrayWidth = genericArray.GetLength(1);
             float[,] arrayAsFloat = new float[arrayWidth, arrayHeight];
+            //Loop through each pixel in array from left to right
             for (int y = 0; y < arrayHeight; y++)
             {
                 for (int x = 0; x < arrayWidth; x++)
                 {
+                    //Convert generic type to string and thereafter parse the string to float
                     arrayAsFloat[x,y] = float.Parse(genericArray[x,y].ToString());
                 }
             }
@@ -130,7 +131,7 @@ namespace SiftSharp {
         /// <summary>
         /// Calculates sum of filtered neighborhood and returns new convolved or cross correlated pixel
         /// </summary>
-        /// <param name="image" type="double[,]">Image matrix</param>
+        /// <param name="image" type="I[,]">Image matrix</param>
         /// <param name="kernel" type="T[,]">Kernel</param>
         /// <param name="x" type="int">pixel x coordinate from image</param>
         /// <param name="y" type="int">pixel y coordinate from image</param>
@@ -144,9 +145,11 @@ namespace SiftSharp {
             float sum = 0.0F;
             SlideTypes flags = SlideTypes.Convolution | SlideTypes.CrossCorrelation;
 
-            //Loop through kernel
-            for (int kernelY = -kernelCenter; kernelY <= kernelCenter; kernelY++) {
-                for (int kernelX =  -kernelCenter; kernelX <= kernelCenter; kernelX++) {
+            //Loop through kernel from negative index away from center to positive index away from center
+            for (int kernelY = -kernelCenter; kernelY <= kernelCenter; kernelY++)
+            {
+                for (int kernelX =  -kernelCenter; kernelX <= kernelCenter; kernelX++)
+                {
                     if ((flags & SlideTypes.Convolution) == SlideTypes.Convolution)
                     {
                         //Convolution
@@ -159,7 +162,7 @@ namespace SiftSharp {
                         sum += (AsFloat(image)[x - kernelX, y - kernelY] *
                                 AsFloat(kernel)[kernelCenter + kernelX, kernelCenter + kernelY]);
                     }
-                    else throw new Exception("Please provide the type of window slide.");
+                    else throw new Exception("Please provide the type of window slide");
                 }
             }
             return sum;

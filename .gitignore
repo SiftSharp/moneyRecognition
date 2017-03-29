@@ -265,6 +265,7 @@
  +
  +# JetBrains Rider
  +.idea/
+ .idea/.idea.SiftSharp/.idea/workspace.xml
  +*.sln.iml
  +
  +# CodeRush
