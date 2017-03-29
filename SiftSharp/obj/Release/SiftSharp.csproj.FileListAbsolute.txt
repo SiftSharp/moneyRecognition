@@ -1,4 +1,0 @@
-/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/bin/Release/SiftSharp.exe
-/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/bin/Release/SiftSharp.exe.mdb
-/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/obj/Release/SiftSharp.exe
-/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/obj/Release/SiftSharp.exe.mdb

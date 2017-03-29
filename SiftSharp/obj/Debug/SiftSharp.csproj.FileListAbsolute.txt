@@ -1,6 +1,0 @@
-C:/Users/hamburger/Documents/Visual Studio 2015/Projects/SiftSharp/SiftSharp/bin/Debug/SiftSharp.exe.config
-/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/bin/Debug/SiftSharp.exe
-/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/bin/Debug/SiftSharp.exe.mdb
-/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/obj/Debug/SiftSharp.exe
-/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/obj/Debug/SiftSharp.exe.mdb
-/Users/asd/Uddannelse/P2/Code/objectRecognition/SiftSharp/obj/Debug/SiftSharp.csprojResolveAssemblyReference.cache
