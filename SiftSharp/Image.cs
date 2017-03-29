@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Drawing;
 
 namespace SiftSharp {
-     class Image {
+    class Image {
         private Bitmap bitmapInput;
         private int[,] img;
 
