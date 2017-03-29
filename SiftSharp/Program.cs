@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace SiftSharp {
     class Program {
-        static void Main(string[] args) {
+		static void Main(string[] args)
+		{
 
-        }
+		}
     }
 }
