@@ -286,73 +286,66 @@ namespace SiftSharp {
 		/// <returns>A jaggered array with the possibility to choose between different matrices</returns>
 		public float[][,] sobel(int size)
 		{
-			int[][,] SobelKernels3x3 = new int[2][,];
-			int[][,] SobelKernels5x5 = new int[2][,];
-			int[][,] SobelKernels7x7 = new int[2][,];
 
-
-			// Sobel Operators:
-
-			// Sobel 3x3 Kernel x
-			SobelKernels3x3[0] = new int[,]{
-				{ -1, 0, 1 },
-				{ -2, 0, 2 },
-				{ -1, 0, 1 } };
-
-			// Sobel 3x3 Kernel y
-			SobelKernels3x3[1] = new int[,]{
-				{ 1, 2, 1 },
-				{ 0, 0, 0 },
-				{ -1, -2, -1 } };
-
-			// Sobel 5x5 Kernel x
-			SobelKernels5x5[0] = new int[,]{
-				{ -2, -1, 0, 1, 2 },
-				{ -3, -2, 0, 2, 3 },
-				{ -4, -3, 0, 3, 4 },
-				{ -3, -2, 0, 2, 3 },
-				{ -2, -1, 0, 1, 2 }};
-
-			// Sobel 5x5 Kernel y
-			SobelKernels5x5[1] = new int[,]{
-				{ 2, 3, 4, 3, 2 },
-				{ 1, 2, 3, 2, 1 },
-				{ 0, 0, 0, 0, 0 },
-				{ -1, -2, -3, -2, -1 },
-				{ -2, -3, -4, -3, -2 }};
-
-			// Sobel 7x7 Kernel x
-			SobelKernels7x7[0] = new int[,] {
-				{ -3, -2, -1, 0, 1, 2, 3 },
-				{ -4, -3, -2, 0, 2, 3, 4 },
-				{ -5, -4, -3, 0, 3, 4, 5 },
-				{ -6, -5, -4, 0, 4, 5, 6 },
-				{ -5, -4, -3, 0, 3, 4, 5 },
-				{ -4, -3, -2, 0, 2, 3, 4 },
-				{ -3, -2, -1, 0, 1, 2, 3 }};
-
-			// Sobel 7x7 Kernel y
-			SobelKernels7x7[1] = new int[,] {
-			   { 3, 4, 5, 6, 5, 4, 3 },
-			   { 2, 3, 4, 5, 4, 3, 2 },
-			   { 1, 2, 3, 4, 3, 2, 1 },
-			   { 0, 0, 0, 0, 0, 0, 0 },
-			   { -1, -2, -3, -4, -3, -2, -1 },
-			   { -2, -3, -4, -5, -4, -3, -2 },
-			   { -3, -4, -5, -6, -5, -4, -3 }};
+			int[][,] SobelKernels = new int[2][,];
 
 			switch (size)
 			{
 				case 3:
-					return SlidingWindow<int, int>(img, SobelKernels3x3, SlideTypes.Convolution);
+					// Sobel 3x3 Kernel x
+					SobelKernels[0] = new int[,]{
+						{ -1, 0, 1 },
+						{ -2, 0, 2 },
+						{ -1, 0, 1 } };
+
+					// Sobel 3x3 Kernel y
+					SobelKernels[1] = new int[,]{
+						{ 1, 2, 1 },
+						{ 0, 0, 0 },
+						{ -1, -2, -1 } };
+					break;
 				case 5:
-					return SlidingWindow<int, int>(img, SobelKernels5x5, SlideTypes.Convolution);
+					// Sobel 5x5 Kernel x
+					SobelKernels[0] = new int[,]{
+						{ -2, -1, 0, 1, 2 },
+						{ -3, -2, 0, 2, 3 },
+						{ -4, -3, 0, 3, 4 },
+						{ -3, -2, 0, 2, 3 },
+						{ -2, -1, 0, 1, 2 }};
+
+					// Sobel 5x5 Kernel y
+					SobelKernels[1] = new int[,]{
+						{ 2, 3, 4, 3, 2 },
+						{ 1, 2, 3, 2, 1 },
+						{ 0, 0, 0, 0, 0 },
+						{ -1, -2, -3, -2, -1 },
+						{ -2, -3, -4, -3, -2 }};
+					break;
 				case 7:
-					return SlidingWindow<int, int>(img, SobelKernels7x7, SlideTypes.Convolution);
+					// Sobel 7x7 Kernel x
+					SobelKernels[0] = new int[,] {
+						{ -3, -2, -1, 0, 1, 2, 3 },
+						{ -4, -3, -2, 0, 2, 3, 4 },
+						{ -5, -4, -3, 0, 3, 4, 5 },
+						{ -6, -5, -4, 0, 4, 5, 6 },
+						{ -5, -4, -3, 0, 3, 4, 5 },
+						{ -4, -3, -2, 0, 2, 3, 4 },
+						{ -3, -2, -1, 0, 1, 2, 3 }};
+
+					// Sobel 7x7 Kernel y
+					SobelKernels[1] = new int[,] {
+					   { 3, 4, 5, 6, 5, 4, 3 },
+					   { 2, 3, 4, 5, 4, 3, 2 },
+					   { 1, 2, 3, 4, 3, 2, 1 },
+					   { 0, 0, 0, 0, 0, 0, 0 },
+					   { -1, -2, -3, -4, -3, -2, -1 },
+					   { -2, -3, -4, -5, -4, -3, -2 },
+					   { -3, -4, -5, -6, -5, -4, -3 }};
+					break;
 				default:
 					throw new InvalidDataException("Size can only be 3, 5 or 7");
 			}
-
+			return SlidingWindow<int, int>(img, SobelKernels, SlideTypes.Convolution);
 		}
     }
 }
