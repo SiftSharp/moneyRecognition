@@ -1,10 +1,8 @@
 ﻿using NUnit.Framework;
-using SiftSharp;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
 
 namespace SiftSharp.Tests
 {
@@ -12,9 +10,30 @@ namespace SiftSharp.Tests
     public class ImageTests
     {
         [Test()]
+        public void marioExist()
+        {
+            Assert.IsTrue(File.Exists(@"images\mario.png"));
+        }
+
+        [Test()]
         public void readImageTest()
         {
-            Assert.Fail();
+            Image testImage = new Image();
+            int[,] expected = {
+                { 91, 91, 91, 139, 139, 139, 139, 139, 139 },
+                { 91, 91, 91, 139, 139, 139, 139, 139, 139 },
+                { 91, 91, 91, 139, 139, 139, 139, 139, 139 },
+                { 139, 139, 139, 130, 130, 130, 130, 130, 130 },
+                { 139, 139, 139, 130, 130, 130, 130, 130, 130 },
+                { 139, 139, 139, 130, 130, 130, 130, 130, 130 },
+                { 139, 139, 139, 130, 130, 130, 130, 130, 130 },
+                { 139, 139, 139, 130, 130, 130, 130, 130, 130 },
+                { 139, 139, 139, 130, 130, 130, 130, 130, 130 }
+            };
+
+            int[,] result = testImage.readImage(new Bitmap(@"images\mario.png"));
+
+            Assert.AreEqual(result, expected);
         }
     }
 }
