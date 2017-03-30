@@ -69,17 +69,20 @@ namespace SiftSharp {
         /// <returns>Bitmap of given array</returns>
         public Bitmap buildImage<T>(T[,] greyImage)
         {
-            int x, y, val;
+            int val;
+            int Width = greyImage.GetLength(0),
+                Height = greyImage.GetLength(1);
+
             // Create bitmap with input dimensions
-            Bitmap output = new Bitmap(greyImage.GetLength(0), greyImage.GetLength(1));
+            Bitmap output = new Bitmap(Width, Height);
 
             // Lock bitmap
             LockBitmap outputLocked = new LockBitmap(output);
             outputLocked.LockBits();
 
-            for (y = 0; y < greyImage.GetLength(1); y++)
+            for (int y = 0; y < Height; y++)
             {
-                for (x = 0; x < greyImage.GetLength(0); x++)
+                for (int x = 0; x < Width; x++)
                 {
                     // Truncate pixel values
                     val = (int)LimitToValues(greyImage[x, y], 0, 255);
