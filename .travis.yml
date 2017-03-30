@@ -11,3 +11,4 @@ install:
 
 script:
   - xbuild ./SiftSharp.sln
+  - nunit-console ./Tests/bin/Debug/Tests.dll

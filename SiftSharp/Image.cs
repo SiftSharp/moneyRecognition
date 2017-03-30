@@ -5,9 +5,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
+using System.IO;
+using System.Runtime.InteropServices;
 
 namespace SiftSharp {
-    class Image {
+    public class Image {
         private Bitmap bitmapInput;
         private int[,] img;
 
@@ -24,6 +26,11 @@ namespace SiftSharp {
                 return;
             }
             img = readImage(this.bitmapInput);
+        }
+
+        public Image()
+        {
+
         }
 
         /// <summary>
@@ -54,9 +61,75 @@ namespace SiftSharp {
 
             return output;
         }
+
+        /// <summary>
+        ///     Generates a Bitmap from 2d array of grayscale pixels
+        /// </summary>
+        /// <param name="greyImage">2D array of grayscale values</param>
+        /// <returns>Bitmap of given array</returns>
+        public Bitmap buildImage<T>(T[,] greyImage)
+        {
+            int val;
+            int Width = greyImage.GetLength(0),
+                Height = greyImage.GetLength(1);
+
+            // Create bitmap with input dimensions
+            Bitmap output = new Bitmap(Width, Height);
+
+            // Lock bitmap
+            LockBitmap outputLocked = new LockBitmap(output);
+            outputLocked.LockBits();
+
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    // Truncate pixel values
+                    val = (int)LimitToValues(greyImage[x, y], 0, 255);
+
+                    // Save pixel value
+                    outputLocked.SetPixel(x, y, Color.FromArgb(
+                        val, val, val
+                    ));
+                }
+            }
+
+            // Unlock bitmap
+            outputLocked.UnlockBits();
+
+            return output;
+        }
+
+        /// <summary>
+        /// Takes a value and checks if it is over or below thresholds.
+        /// If so, it truncates the value to either max or min.
+        /// </summary>
+        /// <typeparam name="T">Double, float or int</typeparam>
+        /// <param name="val">Value to be checked</param>
+        /// <param name="min">Minimum value</param>
+        /// <param name="max">Maximum value</param>
+        /// <returns>Truncated value</returns>
+        private float LimitToValues<T>(T val, int min, int max)
+        {
+            // Parse number to float
+            float ParsedValue = float.Parse(val.ToString());
+
+            // Over
+            if (ParsedValue > max)
+            {
+                return max;
+            }
+            // Below
+            else if (ParsedValue < min)
+            {
+                return min;
+            }
+            // Neither over or below
+            return ParsedValue;
+        }
+
         public void resize() { }
         public void scale() { }
-        public void gaussian() { }
 
 
         //SlideTypes: Flag used for SlidingWindow()
@@ -167,5 +240,111 @@ namespace SiftSharp {
             }
             return sum;
         }
+
+        /// <summary>
+        /// This is a helper method for overloading params to Guassian funcion.
+        /// This means that if you only provide a sigma value, then the
+        /// Guassian call will be of a kernel size on 3 and the
+        /// object data-stream.
+        /// </summary>
+        /// <param name="sigma">The desired sigma value</param>
+        /// <returns>Return gaussian blurred image as 2d float array</returns>
+        public float[,] Gaussian(float sigma)
+        {
+             return Gaussian(sigma, 3, this.img); // Calls the Gaussian method with 3 inputs.
+        }
+
+        /// <summary>
+        /// This is a helper method for overloading params to Guassian funcion.
+        /// This means that if you only provide a sigma value, and a kernel
+        /// size then the Guassian call will be of the object data-stream.
+        /// </summary>
+        /// <param name="sigma">The desired sigma value</param>
+        /// <param name="size">The kernel size</param>
+        /// <returns>Return gaussian blurred image as 2d float array</returns>
+        public float[,] Gaussian(float sigma, int size)
+        {
+            return Gaussian(sigma, size, this.img); // Calls the Gaussian method with 3 inputs.
+        }
+
+        /// <summary>
+        /// This is the main Gaussian method, where all params are required.
+        /// </summary>
+        /// <param name="sigma">The desired sigma value</param>
+        /// <param name="size">The kernel size</param>
+        /// <param name="stream">The data-stream of the image</param>
+        /// <returns>Return gaussian blurred image as 2d float array</returns>
+        public float[,] Gaussian(float sigma, int size, int [,] stream)
+        {
+            float[,] kernel = GenerateGuassianKernel(sigma, size);
+
+            // Since the slidingWindow method needs an array of kernels, we gotta save our kernel in an array first.
+            // Meaby this could be changed in SlidingWindow ?
+            float[][,] kernels = {kernel};
+
+           // Now we send the data-stream + the kernel to the convolution operation and return its value.
+           return SlidingWindow(stream, kernels, SlideTypes.Convolution)[0];
+
+        }
+
+        /// <summary>
+        /// Generates a Gaussian-kernel.
+        /// </summary>
+        /// <param name="sigma">The desired sigma value</param>
+        /// <param name="size">The kernel size</param>
+        /// <returns>Return kernel as 2d float array</returns>
+        /// <exception cref="InvalidDataException">Checks if size is odd, in order to do correct gaussian</exception>
+        public float[,] GenerateGuassianKernel(float sigma, int size)
+        {
+            if (size % 2 == 0)
+            {
+                throw new InvalidDataException("Has to be odd size, inorder to have a center-center point.");
+            }
+            float[ , ] kernel = new float[size, size]; // Creates a new 2d array for the kernel (The matrix of the kernel)
+            int kernelRadius = size / 2; // Sets the radius, this is needed since the middel of the kernel is cosidered [0,0]
+
+            // The gaussian function is (1 / (2*PI*sigma^2))*e^(-1*(x^2+y^2)/(2*sigma^2))
+            // For different purposes this equation is substracted into sub-parts so that,
+            float c = 1 / (2 * (float)Math.PI * (sigma * sigma)); // (1 / (2*PI*sigma^2)) is substituded with c.
+            float k = 2 * sigma * sigma; // (2*sigma^2) is substituded with k.
+
+            float accumulatedSum = 0.0f; // This is the accumulated sum, which is used to normalize the data later on.
+
+            for (int y = -kernelRadius; y <= kernelRadius; y++) // loop through the kernel from bottom row to top
+            {
+                for (int x = -kernelRadius; x <= kernelRadius; x++) // loop through the columns from right to left
+                {
+                    float value = c * (float)Math.Exp(-1 * ((y * y + x * x) / (k))); // The new equation is c*e^(-1*(x^2+y^2)/k).
+                    accumulatedSum += value; // adds the value to the accumulated sum.
+                    kernel[y + kernelRadius, x + kernelRadius] = value; // stores the value in the kernel-matrix.
+                }
+            }
+
+            kernel = NormalizeKernel(kernel, accumulatedSum, size); // Normalize the kernel.
+
+            return kernel;
+        }
+
+        /// <summary>
+        /// This function normalizes any kernel.
+        /// </summary>
+        /// <param name="kernel">The kernel that needs to be normalized</param>
+        /// <param name="accumulatedSum">The accumulated sum of the kernel.</param>
+        /// <param name="size">The kernel size</param>
+        /// <returns>The kernel normalized</returns>
+        public float[,] NormalizeKernel(float[,] kernel, float accumulatedSum, int size)
+        {
+            // Here we loop through the kernel in order to normalize all the data.
+            for (int y = 0; y < size; y++) // Loops through the rows top to bottom.
+            {
+                for (int x = 0; x < size; x++) // Loops through the columns left to right.
+                {
+                    kernel[y, x] = kernel[y, x] * (1.0f / accumulatedSum); //Normalizes the data by deviding it with the accumulated sum.
+                }
+            }
+            return kernel;
+        }
+
+        public void sobel() { }
     }
 }
