@@ -1,7 +1,6 @@
 ﻿using NUnit.Framework;
 using System;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 
 namespace SiftSharp.Tests
@@ -18,7 +17,7 @@ namespace SiftSharp.Tests
         [Test()]
         public void readImageTest()
         {
-            Image testImage = new Image();
+            SiftSharp.Image testImage = new SiftSharp.Image();
             int[,] expected = {
                 { 91, 91, 91, 139, 139, 139, 139, 139, 139 },
                 { 91, 91, 91, 139, 139, 139, 139, 139, 139 },
@@ -31,7 +30,8 @@ namespace SiftSharp.Tests
                 { 139, 139, 139, 130, 130, 130, 130, 130, 130 }
             };
 
-            int[,] result = testImage.readImage(new Bitmap(@"images\mario.png"));
+            int[,] result = testImage.readImage(
+                new System.Drawing.Bitmap(@"images\mario.png"));
 
             Assert.AreEqual(result, expected);
         }

@@ -64,12 +64,6 @@
       <Name>SiftSharp</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="mario.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <CustomToolNamespace>Mario</CustomToolNamespace>
-    </Content>
-  </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
       <ItemGroup>
