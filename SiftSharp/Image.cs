@@ -254,6 +254,20 @@ namespace SiftSharp {
                 }
             }
 
+            kernel = NormalizeKernel(kernel, accumulatedSum, size); // Normalize the kernel.
+
+            return kernel;
+        }
+
+        /// <summary>
+        /// This function normalizes any kernel.
+        /// </summary>
+        /// <param name="kernel">The kernel that needs to be normalized</param>
+        /// <param name="accumulatedSum">The accumulated sum of the kernel.</param>
+        /// <param name="size">The kernel size</param>
+        /// <returns>The kernel normalized</returns>
+        public float[,] NormalizeKernel(float[,] kernel, float accumulatedSum, int size)
+        {
             // Here we loop through the kernel in order to normalize all the data.
             for (int y = 0; y < size; y++) // Loops through the rows top to bottom.
             {
@@ -262,7 +276,6 @@ namespace SiftSharp {
                     kernel[y, x] = kernel[y, x] * (1.0f / accumulatedSum); //Normalizes the data by deviding it with the accumulated sum.
                 }
             }
-
             return kernel;
         }
 

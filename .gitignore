@@ -287,3 +287,7 @@ __pycache__/
 *.odx.cs
 *.xsd.cs
 
+
+# Fix for ShiftSharp/ShiftSharp.sln issue
+ShiftSharp/ShiftSharp.sln
+ShiftSharp/ShiftSharp.csproj
