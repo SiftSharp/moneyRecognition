@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace SiftSharp {
@@ -181,7 +182,8 @@ namespace SiftSharp {
         /// object data-stream.
         /// </summary>
         /// <param name="sigma">The desired sigma value</param>
-        public float[][,] Gaussian(float sigma)
+        /// <returns>Return gaussian blurred image as 2d float array</returns>
+        public float[,] Gaussian(float sigma)
         {
              return Gaussian(sigma, 3, this.img); // Calls the Gaussian method with 3 inputs.
         }
@@ -193,7 +195,8 @@ namespace SiftSharp {
         /// </summary>
         /// <param name="sigma">The desired sigma value</param>
         /// <param name="size">The kernel size</param>
-        public float[][,] Gaussian(float sigma, int size)
+        /// <returns>Return gaussian blurred image as 2d float array</returns>
+        public float[,] Gaussian(float sigma, int size)
         {
             return Gaussian(sigma, size, this.img); // Calls the Gaussian method with 3 inputs.
         }
@@ -204,50 +207,63 @@ namespace SiftSharp {
         /// <param name="sigma">The desired sigma value</param>
         /// <param name="size">The kernel size</param>
         /// <param name="stream">The data-stream of the image</param>
-        public float[][,] Gaussian(float sigma, int size, int [,] stream)
+        /// <returns>Return gaussian blurred image as 2d float array</returns>
+        public float[,] Gaussian(float sigma, int size, int [,] stream)
         {
+            float[,] kernel = GenerateGuassianKernel(sigma, size);
 
-            double[ , ] kernel = new double[size, size]; // Creates a new 2d array for the kernel (The matrix of the kernel)
+            // Since the slidingWindow method needs an array of kernels, we gotta save our kernel in an array first.
+            // Meaby this could be changed in SlidingWindow ?
+            float[][,] kernels = {kernel};
+
+           // Now we send the data-stream + the kernel to the convolution operation and return its value.
+           return SlidingWindow(stream, kernels, SlideTypes.Convolution)[0];
+
+        }
+
+        /// <summary>
+        /// Generates a Gaussian-kernel.
+        /// </summary>
+        /// <param name="sigma">The desired sigma value</param>
+        /// <param name="size">The kernel size</param>
+        /// <returns>Return kernel as 2d float array</returns>
+        /// <exception cref="InvalidDataException">Checks if size is odd, in order to do correct gaussian</exception>
+        public float[,] GenerateGuassianKernel(float sigma, int size)
+        {
+            if (size % 2 == 0)
+            {
+                throw new InvalidDataException("Has to be odd size, inorder to have a center-center point.");
+            }
+            float[ , ] kernel = new float[size, size]; // Creates a new 2d array for the kernel (The matrix of the kernel)
             int kernelRadius = size / 2; // Sets the radius, this is needed since the middel of the kernel is cosidered [0,0]
 
             // The gaussian function is (1 / (2*PI*sigma^2))*e^(-1*(x^2+y^2)/(2*sigma^2))
             // For different purposes this equation is substracted into sub-parts so that,
-            // The new equation is c*e^(-1*(x^2+y^2)/k), this means that:
-            // (1 / (2*PI*sigma^2)) is substituded with c and
-            // (2*sigma^2) is substituded with k.
-            // That allows the calculation of c and k to only happend once per method call.
+            float c = 1 / (2 * (float)Math.PI * (sigma * sigma)); // (1 / (2*PI*sigma^2)) is substituded with c.
+            float k = 2 * sigma * sigma; // (2*sigma^2) is substituded with k.
 
-            double c = 1 / (2 * Math.PI * (sigma * sigma)); // Here c is calculated.
-            double k = 2 * sigma * sigma; // Here k is calculated
-
-            double accumulatedSum = 0.0; // This is the accumulated sum, which is used to normalize the data later on.
+            float accumulatedSum = 0.0f; // This is the accumulated sum, which is used to normalize the data later on.
 
             for (int y = -kernelRadius; y <= kernelRadius; y++) // loop through the kernel from bottom row to top
+            {
+                for (int x = -kernelRadius; x <= kernelRadius; x++) // loop through the columns from right to left
                 {
-                    for (int x = -kernelRadius; x <= kernelRadius; x++) // loop through the columns from right to left
-                    {
-                        double value = c * Math.Exp(-1 * ((y * y + x * x) / (k))); // Calculate the gaussian value of the specific point.
-                        accumulatedSum += value; // adds the value to the accumulated sum.
-                        kernel[y + kernelRadius, x + kernelRadius] = value; // stores the value in the kernel-matrix.
-                    }
+                    float value = c * (float)Math.Exp(-1 * ((y * y + x * x) / (k))); // The new equation is c*e^(-1*(x^2+y^2)/k).
+                    accumulatedSum += value; // adds the value to the accumulated sum.
+                    kernel[y + kernelRadius, x + kernelRadius] = value; // stores the value in the kernel-matrix.
                 }
+            }
 
-           // Here we loop through the kernel in order to normalize all the data.
-           for (int y = 0; y < size; y++) // Loops through the rows top to bottom.
+            // Here we loop through the kernel in order to normalize all the data.
+            for (int y = 0; y < size; y++) // Loops through the rows top to bottom.
+            {
+                for (int x = 0; x < size; x++) // Loops through the columns left to right.
                 {
-                    for (int x = 0; x < size; x++) // Loops through the columns left to right.
-                    {
-                        kernel[y, x] = kernel[y, x] * (1.0 / accumulatedSum); //Normalizes the data by deviding it with the accumulated sum.
-                    }
+                    kernel[y, x] = kernel[y, x] * (1.0f / accumulatedSum); //Normalizes the data by deviding it with the accumulated sum.
                 }
+            }
 
-            // Since the slidingWindow method needs an array of kernels, we gotta save our kernel in an array first.
-            // Meaby this could be changed in SlidingWindow ?
-            double[][,] kernels = {kernel};
-
-           // Now we send the data-stream + the kernel to the convolution operation and return its value.
-           return SlidingWindow(stream, kernels, SlideTypes.Convolution);
-
+            return kernel;
         }
 
         public void sobel() { }
