@@ -2,6 +2,9 @@ language: csharp
 
 solution: ./SiftSharp.sln
 
+notifications:
+  slack: evil-geniuses-team:n7E3iMONwyzfPuEJqo0csjwB
+
 install:
   - sudo apt-get install nunit-console
   - nuget restore ./SiftSharp.sln
