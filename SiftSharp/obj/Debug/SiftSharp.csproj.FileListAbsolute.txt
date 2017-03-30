@@ -1,5 +1,4 @@
 C:/Users/hamburger/Documents/Visual Studio 2015/Projects/SiftSharp/SiftSharp/bin/Debug/SiftSharp.exe.config
-/Users/sipman/Google Drev/AAU/2. Semester/P2/objectRecognition/SiftSharp/bin/Debug/SiftSharp.exe.config
 /Users/sipman/Google Drev/AAU/2. Semester/P2/objectRecognition/SiftSharp/bin/Debug/SiftSharp.exe
 /Users/sipman/Google Drev/AAU/2. Semester/P2/objectRecognition/SiftSharp/bin/Debug/SiftSharp.exe.mdb
 /Users/sipman/Google Drev/AAU/2. Semester/P2/objectRecognition/SiftSharp/obj/Debug/SiftSharp.csprojResolveAssemblyReference.cache

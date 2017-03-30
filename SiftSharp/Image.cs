@@ -18,7 +18,7 @@ namespace SiftSharp {
             }
             catch (ArgumentException ex) {
                 Console.WriteLine(
-                    "{0}: {1}, probable cause is that the file wasn't found",
+                    $"{0}: {1}, probable cause is that the file wasn't found",
                     ex.GetType().Name,
                     ex.Message
                 );
@@ -60,10 +60,9 @@ namespace SiftSharp {
 
             return output;
         }
+
         public void resize() { }
         public void scale() { }
-<<<<<<< HEAD
-        public void gaussian() { }
 
 
         //SlideTypes: Flag used for SlidingWindow()
@@ -174,7 +173,6 @@ namespace SiftSharp {
             }
             return sum;
         }
-=======
 
         /// <summary>
         /// This is a helper method for overloading params to Guassian funcion.
@@ -183,9 +181,9 @@ namespace SiftSharp {
         /// object data-stream.
         /// </summary>
         /// <param name="sigma">The desired sigma value</param>
-        public void Gaussian(float sigma)
+        public float[][,] Gaussian(float sigma)
         {
-             Gaussian(sigma, 3, this.img); // Calls the Gaussian method with 3 inputs.
+             return Gaussian(sigma, 3, this.img); // Calls the Gaussian method with 3 inputs.
         }
 
         /// <summary>
@@ -195,9 +193,9 @@ namespace SiftSharp {
         /// </summary>
         /// <param name="sigma">The desired sigma value</param>
         /// <param name="size">The kernel size</param>
-        public void Gaussian(float sigma, int size)
+        public float[][,] Gaussian(float sigma, int size)
         {
-            Gaussian(sigma, size, this.img); // Calls the Gaussian method with 3 inputs.
+            return Gaussian(sigma, size, this.img); // Calls the Gaussian method with 3 inputs.
         }
 
         /// <summary>
@@ -206,7 +204,7 @@ namespace SiftSharp {
         /// <param name="sigma">The desired sigma value</param>
         /// <param name="size">The kernel size</param>
         /// <param name="stream">The data-stream of the image</param>
-        public void Gaussian(float sigma, int size, int [,] stream)
+        public float[][,] Gaussian(float sigma, int size, int [,] stream)
         {
 
             double[ , ] kernel = new double[size, size]; // Creates a new 2d array for the kernel (The matrix of the kernel)
@@ -243,27 +241,15 @@ namespace SiftSharp {
                     }
                 }
 
-           // Now we send the data-stream + the kernel to the convolution operation and return its value.
-           //return convolve(stream, kernel);
+            // Since the slidingWindow method needs an array of kernels, we gotta save our kernel in an array first.
+            // Meaby this could be changed in SlidingWindow ?
+            double[][,] kernels = {kernel};
 
-           // This next part is just to console write the kernel,
-           // This needs to be deleted before production.
-            Console.WriteLine("kernel:");
-            for (int y = 0; y < size; y++)
-            {
-                Console.Write("[ ");
-                for (int x = 0; x < size; x++)
-                {
-                    Console.Write($"{kernel[y, x]}, ");
-                }
-                Console.Write("]");
-                Console.WriteLine();
-            }
+           // Now we send the data-stream + the kernel to the convolution operation and return its value.
+           return SlidingWindow(stream, kernels, SlideTypes.Convolution);
+
         }
 
-        public void convolve() { }
-        public void crossCorrelate() { }
         public void sobel() { }
->>>>>>> 65ea957d6f37721cca5d3452ff23466644fbe2d8
     }
 }
