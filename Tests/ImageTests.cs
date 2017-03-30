@@ -8,10 +8,29 @@ namespace SiftSharp.Tests
     [TestFixture()]
     public class ImageTests
     {
+        private TestContext testContextInstance;
+        /// <summary>
+        ///Gets or sets the test context which provides
+        ///information about and functionality for the current test run.
+        ///</summary>
+        public TestContext TestContext
+        {
+            get
+            {
+                return testContextInstance;
+            }
+            set
+            {
+                testContextInstance = value;
+            }
+        }
+
         [Test()]
         public void marioExist()
         {
-            Assert.IsTrue(File.Exists(@"images\mario.png"));
+            Assert.IsTrue(File.Exists(@"images/mario.png"));
+
+            TestContext.WriteLine(Directory.GetCurrentDirectory());
         }
 
         [Test()]
@@ -31,7 +50,7 @@ namespace SiftSharp.Tests
             };
 
             int[,] result = testImage.readImage(
-                new System.Drawing.Bitmap(@"images\mario.png"));
+                new System.Drawing.Bitmap(@"images/mario.png"));
 
             Assert.AreEqual(result, expected);
         }
