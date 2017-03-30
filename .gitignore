@@ -264,7 +264,7 @@ paket-files/
 .fake/
 
 # JetBrains Rider
-.idea/
+.idea
 *.sln.iml
 
 # CodeRush
@@ -286,3 +286,4 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
+
