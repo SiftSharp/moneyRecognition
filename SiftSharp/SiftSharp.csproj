@@ -50,14 +50,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Image.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="bin\Debug\SiftSharp.exe.config" />
-    <None Include="bin\Debug\SiftSharp.vshost.exe" />
-    <None Include="bin\Debug\SiftSharp.vshost.exe.config" />
-    <None Include="bin\Debug\SiftSharp.vshost.exe.manifest" />
-    <None Include="obj\Debug\DesignTimeResolveAssemblyReferencesInput.cache" />
-    <None Include="obj\Debug\SiftSharp.csproj.FileListAbsolute.txt" />
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
