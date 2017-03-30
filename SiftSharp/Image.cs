@@ -99,6 +99,22 @@ namespace SiftSharp {
             
             return resize(size);
         }
+
+        public int [,] downsample(int[,] img, int width, int height)
+        {
+            int a = 0, b = 0;
+            int[,] aout = new int[width/2,height/2];
+            for (int i = 0; i <= height; i++)
+            {
+                for (int j = 0; j <= width; j++)
+                {
+                    aout[i, j] = img[a, b];
+                    b+=2;
+                }
+                a+=2;
+            }
+            return aout;
+        }
         public void gaussian() { }
         public void convolve() { }
         public void crossCorrelate() { }
