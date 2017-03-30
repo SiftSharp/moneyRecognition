@@ -18,7 +18,7 @@ namespace SiftSharp {
             }
             catch (ArgumentException ex) {
                 Console.WriteLine(
-                    $"{0}: {1}, probable cause is that the file wasn't found",
+                    "{0}: {1}, probable cause is that the file wasn't found",
                     ex.GetType().Name,
                     ex.Message
                 );
