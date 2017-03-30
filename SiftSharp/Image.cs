@@ -279,91 +279,79 @@ namespace SiftSharp {
             return kernel;
         }
 
-        		/// <summary>
+        /// <summary>
 		///     Sobel operators
 		/// 	
 		/// </summary>
 		/// <returns>A jaggered array with the possibility to choose between different matrices</returns>
-		public float[][,] sobel()
+		public float[][,] sobel(int size)
 		{
-			int[][,] SobelKernels = new int[4][,];
-			int[][,] ResultSobelxy = new int[1][,];
+			int[][,] SobelKernels3x3 = new int[2][,];
+			int[][,] SobelKernels5x5 = new int[2][,];
+			int[][,] SobelKernels7x7 = new int[2][,];
+
 
 			// Sobel Operators:
 
 			// Sobel 3x3 Kernel x
-			SobelKernels[0] = new int[,]{
+			SobelKernels3x3[0] = new int[,]{
 				{ -1, 0, 1 },
 				{ -2, 0, 2 },
 				{ -1, 0, 1 } };
 
 			// Sobel 3x3 Kernel y
-			SobelKernels[1] = new int[,]{
-				{ -1, 0, 1 },
-				{ -2, 0, 2 },
-				{ -1, 0, 1 } };
+			SobelKernels3x3[1] = new int[,]{
+				{ 1, 2, 1 },
+				{ 0, 0, 0 },
+				{ -1, -2, -1 } };
 
 			// Sobel 5x5 Kernel x
-			SobelKernels[2] = new int[,]{
-				{ 2, 1, 0, -1, -2 },
-				{ 3, 2, 0, -2, -3 },
-				{ 4, 3, 0, -3, -4 },
-				{ 3, 2, 0, -2, -3 },
-				{ 2, 1, 0, -1, -2 }};
+			SobelKernels5x5[0] = new int[,]{
+				{ -2, -1, 0, 1, 2 },
+				{ -3, -2, 0, 2, 3 },
+				{ -4, -3, 0, 3, 4 },
+				{ -3, -2, 0, 2, 3 },
+				{ -2, -1, 0, 1, 2 }};
 
 			// Sobel 5x5 Kernel y
-			SobelKernels[3] = new int[,]{
+			SobelKernels5x5[1] = new int[,]{
 				{ 2, 3, 4, 3, 2 },
 				{ 1, 2, 3, 2, 1 },
 				{ 0, 0, 0, 0, 0 },
 				{ -1, -2, -3, -2, -1 },
 				{ -2, -3, -4, -3, -2 }};
 
+			// Sobel 7x7 Kernel x
+			SobelKernels7x7[0] = new int[,] {
+				{ -3, -2, -1, 0, 1, 2, 3 },
+				{ -4, -3, -2, 0, 2, 3, 4 },
+				{ -5, -4, -3, 0, 3, 4, 5 },
+				{ -6, -5, -4, 0, 4, 5, 6 },
+				{ -5, -4, -3, 0, 3, 4, 5 },
+				{ -4, -3, -2, 0, 2, 3, 4 },
+				{ -3, -2, -1, 0, 1, 2, 3 }};
 
-			/// img * Sobels two components (x and y)
-			/// The zeroes are replaced with their new values 
-			/// calculated in the for-loop further down
-			int[,] ResultSobelx = new int[,] {
-				{ 0, 0, 0 },
-				{ 0, 0, 0 },
-				{ 0, 0, 0 }};
+			// Sobel 7x7 Kernel y
+			SobelKernels7x7[1] = new int[,] {
+			   { 3, 4, 5, 6, 5, 4, 3 },
+			   { 2, 3, 4, 5, 4, 3, 2 },
+			   { 1, 2, 3, 4, 3, 2, 1 },
+			   { 0, 0, 0, 0, 0, 0, 0 },
+			   { -1, -2, -3, -4, -3, -2, -1 },
+			   { -2, -3, -4, -5, -4, -3, -2 },
+			   { -3, -4, -5, -6, -5, -4, -3 }};
 
-			int[,] ResultSobely = new int[,] {
-				{ 0, 0, 0 },
-				{ 0, 0, 0 },
-				{ 0, 0, 0 }};
-
-			ResultSobelxy[0] = new int[,] {
-				{ 0, 0, 0 },
-				{ 0, 0, 0 },
-				{ 0, 0, 0 }};
-
-
-			/// Result for the pixel in focus/in the middle
-			/// in a typical 3x3 2D array it is (1,1)
-			/// Only temporary, and is later put into an 2D array
-			int TempResultxy = 0;
-
-
-			// Getting the size of the 3x3 2D array
-			int Size3x3 = SobelKernels[0].GetLength(0);
-
-
-			/// Perform Sobel operators én enkelt gang (for 9 pixels) 
-			/// Get result for all the numbers added together, put into a Temporary variable
-			for (int x = 0; x < Size3x3; x++)
+			switch (size)
 			{
-				for (int y = 0; y < Size3x3; y++)
-				{
-					ResultSobelx[x, y] = img[x, y] * SobelKernels[0][x, y];
-					ResultSobely[x, y] = img[x, y] * SobelKernels[1][x, y];
-					ResultSobelxy[0][x, y] = ResultSobelx[x, y] * ResultSobely[x, y];
-					TempResultxy += (ResultSobelx[x, y] * ResultSobely[x, y]);
-				}
+				case 3:
+					return SlidingWindow<int, int>(img, SobelKernels3x3, SlideTypes.Convolution);
+				case 5:
+					return SlidingWindow<int, int>(img, SobelKernels5x5, SlideTypes.Convolution);
+				case 7:
+					return SlidingWindow<int, int>(img, SobelKernels7x7, SlideTypes.Convolution);
+				default:
+					throw new InvalidDataException("Size can only be 3, 5 or 7");
 			}
-
-			//For every convolution, gem værdien i et array
-			return SlidingWindow<int, int>(img, ResultSobelxy, SlideTypes.Convolution);
 
 		}
     }
