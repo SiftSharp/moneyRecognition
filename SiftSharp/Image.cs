@@ -214,8 +214,8 @@ namespace SiftSharp {
         /// <summary>
         /// Calculates sum of filtered neighborhood and returns new convolved or cross correlated pixel
         /// </summary>
-        /// <param name="image" type="I[,]">Image matrix</param>
-        /// <param name="kernel" type="T[,]">Kernel</param>
+        /// <param name="image" type="float[,]">Image matrix</param>
+        /// <param name="kernel" type="float[,]">Kernel</param>
         /// <param name="x" type="int">pixel x coordinate from image</param>
         /// <param name="y" type="int">pixel y coordinate from image</param>
         /// <param name="slideType" type="enum">Convolution or Crosscorrelation flag</param>
