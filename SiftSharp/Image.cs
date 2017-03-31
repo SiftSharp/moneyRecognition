@@ -62,6 +62,72 @@ namespace SiftSharp {
             return output;
         }
 
+        /// <summary>
+        ///     Generates a Bitmap from 2d array of grayscale pixels
+        /// </summary>
+        /// <param name="greyImage">2D array of grayscale values</param>
+        /// <returns>Bitmap of given array</returns>
+        public Bitmap buildImage<T>(T[,] greyImage)
+        {
+            int val;
+            int Width = greyImage.GetLength(0),
+                Height = greyImage.GetLength(1);
+
+            // Create bitmap with input dimensions
+            Bitmap output = new Bitmap(Width, Height);
+
+            // Lock bitmap
+            LockBitmap outputLocked = new LockBitmap(output);
+            outputLocked.LockBits();
+
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    // Truncate pixel values
+                    val = (int)LimitToValues(greyImage[x, y], 0, 255);
+
+                    // Save pixel value
+                    outputLocked.SetPixel(x, y, Color.FromArgb(
+                        val, val, val
+                    ));
+                }
+            }
+
+            // Unlock bitmap
+            outputLocked.UnlockBits();
+
+            return output;
+        }
+
+        /// <summary>
+        /// Takes a value and checks if it is over or below thresholds.
+        /// If so, it truncates the value to either max or min.
+        /// </summary>
+        /// <typeparam name="T">Double, float or int</typeparam>
+        /// <param name="val">Value to be checked</param>
+        /// <param name="min">Minimum value</param>
+        /// <param name="max">Maximum value</param>
+        /// <returns>Truncated value</returns>
+        private float LimitToValues<T>(T val, int min, int max)
+        {
+            // Parse number to float
+            float ParsedValue = float.Parse(val.ToString());
+
+            // Over
+            if (ParsedValue > max)
+            {
+                return max;
+            }
+            // Below
+            else if (ParsedValue < min)
+            {
+                return min;
+            }
+            // Neither over or below
+            return ParsedValue;
+        }
+
         public void resize() { }
         public void scale() { }
 
@@ -280,8 +346,7 @@ namespace SiftSharp {
         }
 
         /// <summary>
-		///     Sobel operators
-		/// 	
+		/// Sobel Kernels
 		/// </summary>
 		/// <returns>A jaggered array with the possibility to choose between different matrices</returns>
 		public float[][,] sobel(int size)
