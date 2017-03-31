@@ -35,8 +35,7 @@ namespace SiftSharp.Tests
         [Test()]
         public void ReadImage_ShouldBeSame_WhenMarioIsComparedToArray()
         {
-            SiftSharp.Image testImage = new SiftSharp.Image();
-            int[,] expected = {
+            float[,] expected = new SiftSharp.Image(new float[,] {
                 { 91, 91, 91, 139, 139, 139, 139, 139, 139 },
                 { 91, 91, 91, 139, 139, 139, 139, 139, 139 },
                 { 91, 91, 91, 139, 139, 139, 139, 139, 139 },
@@ -46,9 +45,9 @@ namespace SiftSharp.Tests
                 { 139, 139, 139, 130, 130, 130, 130, 130, 130 },
                 { 139, 139, 139, 130, 130, 130, 130, 130, 130 },
                 { 139, 139, 139, 130, 130, 130, 130, 130, 130 }
-            };
+            }).Get();
 
-            int[,] actual = testImage.readImage(
+            float[,] actual = Image.ReadImage(
                 new System.Drawing.Bitmap(Path.Combine(TestDir, @"mario.png")));
 
             Assert.AreEqual(expected, actual);
@@ -60,12 +59,9 @@ namespace SiftSharp.Tests
             // Load Mario image
             System.Drawing.Bitmap marioImage = 
                 new System.Drawing.Bitmap(Path.Combine(TestDir, @"mario.png"));
-
-            // Create new image instance
-            SiftSharp.Image testImage = new SiftSharp.Image();
-
+            
             // Get array from mario image
-            int[,] result = testImage.readImage(
+            float[,] result = Image.ReadImage(
                 new System.Drawing.Bitmap(Path.Combine(TestDir, @"mario.png")));
 
             System.Drawing.Color tempPixel;
