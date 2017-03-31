@@ -27,13 +27,13 @@ namespace SiftSharp.Tests
         }
 
         [Test()]
-        public void marioExist()
+        public void ShouldFindMarioWhenMarioExist()
         {
             Assert.IsTrue(File.Exists(Path.Combine(TestDir,@"mario.png")));
         }
 
         [Test()]
-        public void readImageTest()
+        public void ReadImage_ShouldBeSame_WhenMarioIsComparedToArray()
         {
             SiftSharp.Image testImage = new SiftSharp.Image();
             int[,] expected = {
@@ -55,10 +55,10 @@ namespace SiftSharp.Tests
         }
 
         [Test()]
-        public void buildImage_ShouldReturnSame_WhenInputIsBW()
+        public void BuildImage_ShouldReturnSame_WhenInputIsBW()
         {
             // Load Mario image
-            System.Drawing.Bitmap MarioImage = 
+            System.Drawing.Bitmap marioImage = 
                 new System.Drawing.Bitmap(Path.Combine(TestDir, @"mario.png"));
 
             // Create new image instance
@@ -76,7 +76,7 @@ namespace SiftSharp.Tests
                 for (int y = 0; y < result.GetLength(0); y++)
                 {
                     // Get pixel at current position
-                    tempPixel = MarioImage.GetPixel(x, y);
+                    tempPixel = marioImage.GetPixel(x, y);
                     // Assert that both are equal
                     Assert.AreEqual(
                         ((tempPixel.R + tempPixel.G + tempPixel.B) / 3), // Expected
