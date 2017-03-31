@@ -17,21 +17,11 @@ namespace SiftSharp {
             try {
                 bitmapInput = new Bitmap(path);
             }
-            catch (ArgumentException ex) {
-                Console.WriteLine(
-                    "{0}: {1}, probable cause is that the file wasn't found",
-                    ex.GetType().Name,
-                    ex.Message
-                );
-                return;
+            catch (Exception ex) {
+                throw new InvalidDataException(
+                    "Either no file is at "+path+" or Image was 'null' and cannot continue...");
             }
-            if(bitmapInput != null)
-            {
-                img = ReadImage(bitmapInput);
-            }else
-            {
-                throw new InvalidDataException("Image was 'null' cannot continue...");
-            }
+            img = ReadImage(bitmapInput);
         }
 
         /// <summary>
@@ -247,7 +237,6 @@ namespace SiftSharp {
         /// <returns>Bitmap of given array</returns>
         public static Bitmap BuildImage<T>(T[,] greyImage)
         {
-            int val;
             int Width = greyImage.GetLength(0),
                 Height = greyImage.GetLength(1);
 
@@ -263,7 +252,7 @@ namespace SiftSharp {
                 for (int x = 0; x < Width; x++)
                 {
                     // Truncate pixel values
-                    val = (int)LimitToValues(greyImage[x, y], 0, 255);
+                    int val = (int)LimitToValues(greyImage[x, y], 0, 255);
 
                     // Save pixel value
                     outputLocked.SetPixel(x, y, Color.FromArgb(
