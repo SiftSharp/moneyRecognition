@@ -13,6 +13,7 @@ namespace SiftSharp.Sift
             this.numberOfOctaves = numberOfOctaves;
         }
 
+
         /// <summary>
         /// Creates DoG in Scale Space from Gaussian Pyramid in Scale Space
         /// </summary>
@@ -46,7 +47,7 @@ namespace SiftSharp.Sift
                         for (int x = 0; x < gaussPyramid[octave][img].GetLength(0); x++)
                         {
                             //Subtract each pixel x,y in current image indexed from one with previous for each level
-                            result[octave][img][x, y] =
+                            result[octave][img-1][x, y] =
                                 gaussPyramid[octave][img][x, y] - gaussPyramid[octave][img - 1][x, y];
                         }
                     }
