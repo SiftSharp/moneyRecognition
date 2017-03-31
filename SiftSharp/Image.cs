@@ -170,7 +170,10 @@ namespace SiftSharp {
                 .ToArray();//Make it an array
 
             //Make kernels float[,] from generic
-            for (int i = 0; i < numberOfKernels; i++) kernelsAsFloats[i] = AsFloat(kernels[i]);
+            for (int i = 0; i < numberOfKernels; i++)
+            {
+                kernelsAsFloats[i] = AsFloat(kernels[i]);
+            }
 
             //Loops through image pixels
             for (int y = kernelCenter; y < (imageHeight - kernelCenter); y++)
