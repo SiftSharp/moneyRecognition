@@ -152,11 +152,21 @@ namespace SiftSharp {
         public float[][,] SlidingWindow<I,T>(I[,] image, T[][,] kernels, SlideTypes slideType)
         {
             int imageWidth = image.GetLength(0), imageHeight = image.GetLength(1);
-
-            //Assumes that kernel size always will be same when multiple kernels should be applied
             int kernelSize = kernels[0].GetLength(0);
-            int kernelCenter = kernelSize / 2;
             int numberOfKernels = kernels.GetLength(0);
+            int kernelCenter = kernelSize / 2;
+
+            float[][,] kernelsAsFloats = Enumerable
+                .Range(0, numberOfKernels)
+                .Select(_ =>  new float[kernelSize, kernelSize])
+                .ToArray();
+
+            for (int i = 0; i < numberOfKernels; i++)
+            {
+                kernelsAsFloats[i] = AsFloat(kernels[i]);
+            }
+
+            float[,] imageAsFloat = AsFloat(image);
 
             //Initialize array of 2D arrays with correct size
             float[][,] result = Enumerable
@@ -172,7 +182,7 @@ namespace SiftSharp {
                     //Loops through all kernels in kernels[] and calls ApplyKernel() with said kernel
                     for(int k = 0; k < numberOfKernels; k++)
                     {
-                        result[k][x, y] = ApplyKernel(image, kernels[k], x, y, slideType);
+                        result[k][x, y] = ApplyKernel(imageAsFloat, kernelsAsFloats[k], x, y, slideType);
                     }
                 }
             }
@@ -209,12 +219,10 @@ namespace SiftSharp {
         /// <param name="y" type="int">pixel y coordinate from image</param>
         /// <param name="slideType" type="enum">Convolution or Crosscorrelation flag</param>
         /// <returns>A pixel after summation of local neighborhood</returns>
-        public float ApplyKernel<I,T>(I[,] image, T[,] kernel, int x, int y, SlideTypes slideType)
+        public float ApplyKernel(float[,] image, float[,] kernel, int x, int y, SlideTypes slideType)
         {
             int kernelSize = kernel.GetLength(0);
             int kernelCenter = kernelSize / 2;
-            float[,] imageAsFloat = AsFloat(image);
-            float[,] kernelAsFloat = AsFloat(kernel);
             SlideTypes flags = SlideTypes.Convolution | SlideTypes.CrossCorrelation;
             float sum = 0.0F;
 
@@ -226,14 +234,14 @@ namespace SiftSharp {
                     if ((flags & SlideTypes.Convolution) == SlideTypes.Convolution)
                     {
                         //Convolution
-                        sum += (imageAsFloat[x + kernelX, y + kernelY] *
-                                kernelAsFloat[kernelCenter - kernelX, kernelCenter - kernelY]);
+                        sum += (image[x + kernelX, y + kernelY] *
+                                kernel[kernelCenter - kernelX, kernelCenter - kernelY]);
                     }
                     else if ((flags & SlideTypes.CrossCorrelation) == SlideTypes.CrossCorrelation)
                     {
                         //Cross Correlation
-                        sum += (imageAsFloat[x - kernelX, y - kernelY] *
-                                kernelAsFloat[kernelCenter + kernelX, kernelCenter + kernelY]);
+                        sum += (image[x - kernelX, y - kernelY] *
+                                kernel[kernelCenter + kernelX, kernelCenter + kernelY]);
                     }
                     else throw new Exception("Please provide the type of window slide");
                 }
