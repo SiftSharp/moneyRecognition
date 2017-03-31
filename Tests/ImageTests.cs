@@ -27,13 +27,13 @@ namespace SiftSharp.Tests
         }
 
         [Test()]
-        public void marioExist()
+        public void ShouldFindMarioWhenMarioExist()
         {
             Assert.IsTrue(File.Exists(Path.Combine(TestDir,@"mario.png")));
         }
 
         [Test()]
-        public void readImageTest()
+        public void ReadImage_ShouldBeSame_WhenMarioIsComparedToArray()
         {
             SiftSharp.Image testImage = new SiftSharp.Image();
             int[,] expected = {
@@ -48,10 +48,43 @@ namespace SiftSharp.Tests
                 { 139, 139, 139, 130, 130, 130, 130, 130, 130 }
             };
 
+            int[,] actual = testImage.readImage(
+                new System.Drawing.Bitmap(Path.Combine(TestDir, @"mario.png")));
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test()]
+        public void BuildImage_ShouldReturnSame_WhenInputIsBW()
+        {
+            // Load Mario image
+            System.Drawing.Bitmap marioImage = 
+                new System.Drawing.Bitmap(Path.Combine(TestDir, @"mario.png"));
+
+            // Create new image instance
+            SiftSharp.Image testImage = new SiftSharp.Image();
+
+            // Get array from mario image
             int[,] result = testImage.readImage(
                 new System.Drawing.Bitmap(Path.Combine(TestDir, @"mario.png")));
 
-            Assert.AreEqual(result, expected);
+            System.Drawing.Color tempPixel;
+            
+            // Foreach pixel
+            for(int x=0; x < result.GetLength(0); x++)
+            {
+                for (int y = 0; y < result.GetLength(0); y++)
+                {
+                    // Get pixel at current position
+                    tempPixel = marioImage.GetPixel(x, y);
+                    // Assert that both are equal
+                    Assert.AreEqual(
+                        ((tempPixel.R + tempPixel.G + tempPixel.B) / 3), // Expected
+                        result[x, y]);                                   // Actual
+                }
+
+            }
+            
         }
     }
 }
