@@ -7,6 +7,8 @@ using System.Drawing;
 
 namespace SiftSharp {
     class Image {
+        const int GetWidth = 0;
+        const int GetHeight = 1;
         private Bitmap bitmapInput;
         private int[,] img;
 
@@ -57,7 +59,7 @@ namespace SiftSharp {
         }
 
 
-        public Bitmap resize(Size newSize)
+        public Bitmap Resize(Size newSize)
         {
             try
             { 
@@ -81,14 +83,14 @@ namespace SiftSharp {
         /*
          Creates Size object, scales it and calls resize.
              */
-        public Bitmap scale(double scalePercent)
+        public Bitmap Scale(double scalePercent)
         {
             Size size;
             size = new Size(bitmapInput.Width, bitmapInput.Height); //Create Size object.
 
             if (Math.Abs(scalePercent - 0.1) < double.Epsilon) // The smallest possible float number.
             {
-                return resize(size);
+                return Resize(size);
             }
             else
             {   // Scales Size object.
@@ -97,18 +99,16 @@ namespace SiftSharp {
                 size.Height = (int)(size.Height * s);
             }
             
-            return resize(size);
+            return Resize(size);
         }
 
         /* Removes every second pixel from image array. Render image half size.*/
-        public int [,] downsample()
+        public float [,] Downsample()
         {
-            const int GetWidth = 0;
-            const int GetHeight = 1;
             int a = -2, b;
             int new_width = img.GetLength(GetWidth) / 2;               // Precompute new width and height
             int new_height = img.GetLength(GetHeight) / 2;             // from old array.
-            int[,] aout = new int[new_width, new_height];
+            float[,] outputArray = new float[new_width, new_height];
             for (int i = 0; i < new_width; i++)
             {
                 a += 2;                               // Increase a.
@@ -116,10 +116,10 @@ namespace SiftSharp {
                 for (int j = 0; j < new_height; j++)
                 {
                     b += 2;                           // Every second pixel.
-                    aout[i, j] = img[a, b];           // Copy old array to new.
+                    outputArray[i, j] = img[a, b];    // Copy old array to new.
                 }
             }
-            return aout;                              // Return output array.
+            return outputArray;                       // Return output array.
         }
         public void gaussian() { }
         public void convolve() { }
