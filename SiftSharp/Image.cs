@@ -155,24 +155,22 @@ namespace SiftSharp {
             int kernelSize = kernels[0].GetLength(0);
             int numberOfKernels = kernels.GetLength(0);
             int kernelCenter = kernelSize / 2;
+            float[,] imageAsFloat = AsFloat(image);
 
+            //Initialize array of Floats
             float[][,] kernelsAsFloats = Enumerable
                 .Range(0, numberOfKernels)
                 .Select(_ =>  new float[kernelSize, kernelSize])
                 .ToArray();
-
-            for (int i = 0; i < numberOfKernels; i++)
-            {
-                kernelsAsFloats[i] = AsFloat(kernels[i]);
-            }
-
-            float[,] imageAsFloat = AsFloat(image);
 
             //Initialize array of 2D arrays with correct size
             float[][,] result = Enumerable
                 .Range(0, numberOfKernels)//From 0 to the number of kernels
                 .Select(_ =>  new float[imageWidth, imageHeight])//Create new float
                 .ToArray();//Make it an array
+
+            //Make kernels float[,] from generic
+            for (int i = 0; i < numberOfKernels; i++) kernelsAsFloats[i] = AsFloat(kernels[i]);
 
             //Loops through image pixels
             for (int y = kernelCenter; y < (imageHeight - kernelCenter); y++)
