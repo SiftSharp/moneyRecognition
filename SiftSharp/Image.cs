@@ -9,7 +9,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 
 namespace SiftSharp {
-    class Image {
+    public class Image {
         private Bitmap bitmapInput;
         private int[,] img;
 
