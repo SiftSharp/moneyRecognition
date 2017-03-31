@@ -100,20 +100,26 @@ namespace SiftSharp {
             return resize(size);
         }
 
-        public int [,] downsample(int[,] img, int width, int height)
+        /* Removes every second pixel from image array. Render image half size.*/
+        public int [,] downsample()
         {
-            int a = 0, b = 0;
-            int[,] aout = new int[width/2,height/2];
-            for (int i = 0; i <= height; i++)
+            const int GetWidth = 0;
+            const int GetHeight = 1;
+            int a = -2, b;
+            int new_width = img.GetLength(GetWidth) / 2;               // Precompute new width and height
+            int new_height = img.GetLength(GetHeight) / 2;             // from old array.
+            int[,] aout = new int[new_width, new_height];
+            for (int i = 0; i < new_width; i++)
             {
-                for (int j = 0; j <= width; j++)
+                a += 2;                               // Increase a.
+                b = -2;                               // Reset b.
+                for (int j = 0; j < new_height; j++)
                 {
-                    aout[i, j] = img[a, b];
-                    b+=2;
+                    b += 2;                           // Every second pixel.
+                    aout[i, j] = img[a, b];           // Copy old array to new.
                 }
-                a+=2;
             }
-            return aout;
+            return aout;                              // Return output array.
         }
         public void gaussian() { }
         public void convolve() { }
