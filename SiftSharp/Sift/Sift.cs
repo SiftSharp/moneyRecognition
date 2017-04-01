@@ -17,13 +17,13 @@ namespace SiftSharp.Sift
         /// <param name="x" type="int">x coordinate of feature</param>
         /// <param name="y" type="int">y coordinate of feature</param>
         /// <param name="octave" type="int">The octave the feature was found in</param>
-        /// <param name="scale" type="int">The picture of the octave the feature was found in (interval)</param>
+        /// <param name="interval" type="int">The picture of the octave the feature was found in (interval)</param>
         /// <returns>Bool true or false for a point</returns>
-        public bool IsExtremum(int[][][,] dogPyramid, int x, int y, int octave, int scale)
+        public bool IsExtremum(int[][][,] dogPyramid, int x, int y, int octave, int interval)
         {
             bool isMinimum = false;
             bool isMaximum = false;
-            int featurePixel = dogPyramid[octave][scale][x, y];
+            int featurePixel = dogPyramid[octave][interval][x, y];
 
             //For adjacent to next image
             for (int imgIndex = -1; imgIndex <= 1; imgIndex++)
@@ -35,18 +35,18 @@ namespace SiftSharp.Sift
                     {
                         //If the pixel of feature is greather than neighbor
                         if (featurePixel >
-                            dogPyramid[octave][scale + imgIndex][x + xIndex, y + yIndex])
+                            dogPyramid[octave][interval + imgIndex][x + xIndex, y + yIndex])
                         {
                             isMaximum = true;
                         }
                         //If the pixel of feature is less than neighbor
                         else if (featurePixel <
-                                 dogPyramid[octave][scale + imgIndex][x + xIndex, y + yIndex])
+                                 dogPyramid[octave][interval + imgIndex][x + xIndex, y + yIndex])
                         {
                             isMinimum = true;
                         }
                         //If both are true, then there is both values greater and less than the pixel,
-                        //therefore it is neither maximum or minimum
+                        // therefore it is neither maximum or minimum
                         if (isMaximum && isMinimum)
                         {
                             return false;
