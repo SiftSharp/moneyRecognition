@@ -5,13 +5,8 @@ namespace SiftSharp.Sift
 {
     public class Sift
     {
-        private int intervalsInOctave;
-        private int numberOfOctaves;
-
-        public Sift(int intervalsInOctave, int numberOfOctaves)
+        public Sift()
         {
-            this.intervalsInOctave = intervalsInOctave;
-            this.numberOfOctaves = numberOfOctaves;
         }
 
         /// <summary>
