@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System;
 
 namespace SiftSharp.Sift
 {
@@ -13,47 +14,52 @@ namespace SiftSharp.Sift
             this.numberOfOctaves = numberOfOctaves;
         }
 
-
         /// <summary>
-        /// Creates DoG in Scale Space from Gaussian Pyramid in Scale Space
+        /// Determines whether a pixel is a scale-space extremum by comparing it to
+        /// it's 3x3 pixel neighborhood in current scale, prev and next
         /// </summary>
-        /// <param name="gaussPyramid" type="int[][][,]">Gauss pyramid</param>
-        /// <returns>int[][][,] DoG pyramid</returns>
-        public int[][][,] BuildDogPyramid(int[][][,] gaussPyramid)
+        /// <param name="dogPyramid" type="int[][][,]">DoGPyramid</param>
+        /// <param name="x" type="int">x coordinate of feature</param>
+        /// <param name="y" type="int">y coordinate of feature</param>
+        /// <param name="octave" type="int">The octave the feature was found in</param>
+        /// <param name="scale" type="int">The picture of the octave the feature was found in (interval)</param>
+        /// <returns>Bool true or false for a point</returns>
+        public bool IsExtremum(int[][][,] dogPyramid, int x, int y, int octave, int scale)
         {
-            int gaussWidth = gaussPyramid[0][0].GetLength(0);
-            int gaussHeight = gaussPyramid[0][0].GetLength(1);
+            bool isMinimum = false;
+            bool isMaximum = false;
+            int featurePixel = dogPyramid[octave][scale][x, y];
 
-            int[][,] imagesInOctaves = Enumerable
-                .Range(0, intervalsInOctave - 1)
-                .Select(_ => new int[gaussWidth, gaussHeight])
-                .ToArray();
-
-            int[][][,] result = Enumerable
-                .Range(0, numberOfOctaves)
-                .Select(_ => imagesInOctaves)
-                .ToArray();
-
-            //For each octave
-            for (int octave = 0; octave < numberOfOctaves; octave++)
+            //For adjacent to next image
+            for (int imgIndex = -1; imgIndex <= 1; imgIndex++)
             {
-                //For each picture in each octave
-                for (int img = 1; img < intervalsInOctave; img++)
+                //For each index away (3x3 neighborhood)
+                for (int xIndex = -1; xIndex <= 1; xIndex++)
                 {
-                    //For each y in the image
-                    for (int y = 0; y < gaussPyramid[octave][img].GetLength(1); y++)
+                    for (int yIndex = -1; yIndex <= 1; yIndex++)
                     {
-                        //For each x in the image
-                        for (int x = 0; x < gaussPyramid[octave][img].GetLength(0); x++)
+                        //If the pixel of feature is greather than neighbor
+                        if (featurePixel >
+                            dogPyramid[octave][scale + imgIndex][x + xIndex, y + yIndex])
                         {
-                            //Subtract each pixel x,y in current image indexed from one with previous for each level
-                            result[octave][img-1][x, y] =
-                                gaussPyramid[octave][img][x, y] - gaussPyramid[octave][img - 1][x, y];
+                            isMaximum = true;
+                        }
+                        //If the pixel of feature is less than neighbor
+                        else if (featurePixel <
+                                 dogPyramid[octave][scale + imgIndex][x + xIndex, y + yIndex])
+                        {
+                            isMinimum = true;
+                        }
+                        //If both are true, then there is both values greater and less than the pixel,
+                        //therefore it is neither maximum or minimum
+                        if (isMaximum && isMinimum)
+                        {
+                            return false;
                         }
                     }
                 }
             }
-            return result;
+            return isMinimum || isMaximum;
         }
     }
 }
