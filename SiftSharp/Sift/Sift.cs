@@ -23,18 +23,8 @@ namespace SiftSharp.Sift
         {
             int gaussWidth = gaussPyramid[0][0].Get().GetLength(0);
             int gaussHeight = gaussPyramid[0][0].Get().GetLength(1);
-
-            float[][,] imagesInOctaves = Enumerable
-                .Range(0, levelsInOctave)
-                .Select(_ => new float[gaussWidth, gaussHeight])
-                .ToArray();
-
-            float[][][,] result = Enumerable
-                .Range(0, numberOfOctaves)
-                .Select(_ => imagesInOctaves)
-                .ToArray();
-
             Image[][] dogPyramid = new Image[numberOfOctaves][];
+            float[][][,] result = new float[numberOfOctaves][][,];
 
             //For each octave
             for (int octave = 0; octave < numberOfOctaves; octave++)
