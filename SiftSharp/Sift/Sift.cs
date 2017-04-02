@@ -17,13 +17,13 @@ namespace SiftSharp.Sift
         /// <param name="x" type="int">x coordinate of feature</param>
         /// <param name="y" type="int">y coordinate of feature</param>
         /// <param name="octave" type="int">The octave the feature was found in</param>
-        /// <param name="interval" type="int">The picture of the octave the feature was found in (interval)</param>
+        /// <param name="level" type="int">The picture of the octave the feature was found in</param>
         /// <returns>Bool true or false for a point</returns>
-        public bool IsExtremum(int[][][,] dogPyramid, int x, int y, int octave, int interval)
+        public bool IsExtremum(int[][][,] dogPyramid, int x, int y, int octave, int level)
         {
             bool isMinimum = false;
             bool isMaximum = false;
-            int featurePixel = dogPyramid[octave][interval][x, y];
+            int featurePixel = dogPyramid[octave][level][x, y];
 
             //For adjacent to next image
             for (int imgIndex = -1; imgIndex <= 1; imgIndex++)
@@ -35,13 +35,13 @@ namespace SiftSharp.Sift
                     {
                         //If the pixel of feature is greather than neighbor
                         if (featurePixel >
-                            dogPyramid[octave][interval + imgIndex][x + xIndex, y + yIndex])
+                            dogPyramid[octave][level + imgIndex][x + xIndex, y + yIndex])
                         {
                             isMaximum = true;
                         }
                         //If the pixel of feature is less than neighbor
                         else if (featurePixel <
-                                 dogPyramid[octave][interval + imgIndex][x + xIndex, y + yIndex])
+                                 dogPyramid[octave][level + imgIndex][x + xIndex, y + yIndex])
                         {
                             isMinimum = true;
                         }
