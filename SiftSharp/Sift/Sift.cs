@@ -22,7 +22,7 @@ namespace SiftSharp.Sift
         /// <param name="octaves">Octaves to build</param>
         /// <param name="levels">Levels per octave to filter</param>
         /// <returns>Gaussian pyramid</returns>
-        Image[,] GaussianPyramid(Image input, int octaves, int levels)
+        Image[][] GaussianPyramid(Image input, int octaves, int levels)
         {
             // Derived from Lowe 2004
             float initialSigma = (float) Math.Sqrt(2);
@@ -31,7 +31,7 @@ namespace SiftSharp.Sift
             // Clone image into temporary image
             Image tempImage = input.Clone();
 
-            Image[,] pyramid = new Image[octaves, levels];
+            Image[][] pyramid = new Image[octaves][];
 
             // https://stackoverflow.com/questions/2704844/how-to-use-dog-pyramid-in-sift
             // https://github.com/aminert/CBIR/blob/master/SIFT.m#L120
@@ -46,11 +46,13 @@ namespace SiftSharp.Sift
             // Foreach octave and foreach level
             for (int o = 0; o < octaves; o++)
             {
+                pyramid[o] = new Image[levels + extremaFactor];
                 float sigma = initialSigma;
+
                 for (int l = 0; l < levels + extremaFactor; l++)
                 {
                     // Blur image with sigma
-                    pyramid[o, l] = tempImage.Clone().Gaussian(sigma);
+                    pyramid[o][l] = tempImage.Clone().Gaussian(sigma);
 
                     // Step up sigma
                     sigma *= sigmaFactor;
