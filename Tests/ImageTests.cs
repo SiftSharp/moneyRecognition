@@ -13,8 +13,8 @@ namespace SiftSharp.Tests
         string TestDir = TestContext.CurrentContext.TestDirectory;
         private TestContext testContextInstance;
         /// <summary>
-        ///Gets or sets the test context which provides
-        ///information about and functionality for the current test run.
+        /// Gets or sets the test context which provides
+        /// information about and functionality for the current test run.
         ///</summary>
         public TestContext TestContext
         {
@@ -99,5 +99,43 @@ namespace SiftSharp.Tests
 
             Assert.AreEqual(expected, actual);
         }
+
+        [Test()]
+        public void GenerateGaussianKernel_ShouldReturnExactKernel_WhenSigmaIsFiveDotFiveAndSizeIsThree()
+        {
+            float[,] expected =
+            {
+               {0.109886788f, 0.111718188f, 0.109886788f},
+               {0.111718188f, 0.113580115f, 0.111718188f},
+               {0.109886788f, 0.111718188f, 0.109886788f}
+            };
+            float[,] actual = Image.GenerateGuassianKernel(5.5f, 3);
+
+            Assert.AreEqual(expected, actual);
+        }
+
+
+        /*[Test()]
+        public void Gaussian_ShouldReturnExactImage_WhenAllPixelValuesIsSetToOne()
+        {
+            SiftSharp.Image testImage = new SiftSharp.Image(Path.Combine(TestDir, @"mario.png"));
+            float[,] expected =
+            {
+                {0.109886788f, 0.111718188f, 0.109886788f},
+                {0.111718188f, 0.113580115f, 0.111718188f},
+                {0.109886788f, 0.111718188f, 0.109886788f}
+            };
+            int[,] image =
+            {
+                {255, 255, 255},
+                {1, 1, 1},
+                {1, 1, 1}
+            };
+
+            float[,] actual = testImage.Gaussian(5.5f, 3, image);
+
+            Assert.AreEqual(expected, actual);
+        }*/
+
     }
 }
