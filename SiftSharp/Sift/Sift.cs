@@ -47,7 +47,7 @@ namespace SiftSharp.Sift
             for (int o = 0; o < octaves; o++)
             {
                 pyramid[o] = new Image[levels + extremaFactor];
-                float sigma = initialSigma;
+                float sigma = initialSigma * (o * sigmaFactor);
 
                 for (int l = 0; l < levels + extremaFactor; l++)
                 {
