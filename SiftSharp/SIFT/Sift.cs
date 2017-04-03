@@ -54,8 +54,16 @@ namespace SiftSharp.SIFT
                         // Create a weight for bin ( e^( -(x^2 + y^2) / (2*sigma^2) ) )
                         double weight = Math.Exp(-(i * i + j * j) / exponential_denom);
 
-                        // Determine which bin we need
-                        int bin = (int)Math.Round(bins * (orientation + Math.PI) / (Math.PI * 2));
+                        // We find the percentage of which the orientation fills a full
+                        // circle. We do this by first ensuring that we don't end with 
+                        // negative values by adding PI to our orientation. Afterwards
+                        // we devide by by 2PI to get the percentage of the full circle. 
+                        double percantageOfCircle = (orientation + Math.PI) / (Math.PI * 2);
+
+                        // Determine which bin inwhich our magnitude should be added to
+                        // by multiplying our pecentage by our number of bins and round
+                        // to nearest integer, to find the respective bin.
+                        int bin = (int)Math.Round(bins * percantageOfCircle);
 
                         // Set bin to zero if higher
                         bin = (bin < bins) ? bin : 0;
