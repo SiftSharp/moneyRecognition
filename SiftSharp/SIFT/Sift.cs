@@ -135,7 +135,7 @@ namespace SiftSharp.SIFT
                         {
                             //Subtract each pixel x,y in current image indexed from one with previous for each level
                             result[octave][level-1][x, y] =
-                                255 - (currentImage[x, y] - prevImage[x, y]);
+                                (currentImage[x, y] - prevImage[x, y]);
                         }
                     }
                     dogPyramid[octave][level - 1] = new Image(result[octave][level - 1]);
