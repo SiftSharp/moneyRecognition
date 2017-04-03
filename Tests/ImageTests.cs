@@ -101,41 +101,36 @@ namespace SiftSharp.Tests
         }
 
         [Test()]
-        public void GenerateGaussianKernel_ShouldReturnExactKernel_WhenSigmaIsFiveDotFiveAndSizeIsThree()
+        public void GenerateGaussianKernel_ShouldReturnExactImage_WhenSigmaIsFiveDotFiveAndSizeIsThree()
         {
-            float[,] expected =
+            System.Drawing.Bitmap GaussianFilter = new System.Drawing.Bitmap(Path.Combine(TestDir, @"images/GaussianBlurred5.5Sigma3x3Kernel.png"));
+            int width = GaussianFilter.Width,
+                height = GaussianFilter.Height;
+            float[,] expected = new float[width, height];
+            System.Drawing.Color colors;
+            LockBitmap inputLocked = new LockBitmap(GaussianFilter);
+            inputLocked.LockBits();
+
+            // Store grayscale value for each pixel
+            for (int y = 0; y < height; y++)
             {
-               {0.109886788f, 0.111718188f, 0.109886788f},
-               {0.111718188f, 0.113580115f, 0.111718188f},
-               {0.109886788f, 0.111718188f, 0.109886788f}
-            };
-            float[,] actual = Image.GenerateGuassianKernel(5.5f, 3);
+                for (int x = 0; x < width; x++)
+                {
+                    colors = inputLocked.GetPixel(x, y);
+                    expected[x, y] = colors.R;
+                }
+            }
+
+            inputLocked.UnlockBits();
+
+            float[,] gaussImage = Image.Gaussian(5.5f, 3, Image.ReadImage(
+                new System.Drawing.Bitmap(Path.Combine(TestDir,@"images/Input Image.png"))));
+
+            float[,] actual = Image.ReadImage(Image.BuildImage(gaussImage));
 
             Assert.AreEqual(expected, actual);
         }
 
-
-        /*[Test()]
-        public void Gaussian_ShouldReturnExactImage_WhenAllPixelValuesIsSetToOne()
-        {
-            SiftSharp.Image testImage = new SiftSharp.Image(Path.Combine(TestDir, @"mario.png"));
-            float[,] expected =
-            {
-                {0.109886788f, 0.111718188f, 0.109886788f},
-                {0.111718188f, 0.113580115f, 0.111718188f},
-                {0.109886788f, 0.111718188f, 0.109886788f}
-            };
-            int[,] image =
-            {
-                {255, 255, 255},
-                {1, 1, 1},
-                {1, 1, 1}
-            };
-
-            float[,] actual = testImage.Gaussian(5.5f, 3, image);
-
-            Assert.AreEqual(expected, actual);
-        }*/
 
     }
 }
