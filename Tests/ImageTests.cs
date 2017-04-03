@@ -1,7 +1,9 @@
 ﻿using NUnit.Framework;
 using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
+using System.Runtime;
 
 namespace SiftSharp.Tests
 {
@@ -11,8 +13,8 @@ namespace SiftSharp.Tests
         string TestDir = TestContext.CurrentContext.TestDirectory;
         private TestContext testContextInstance;
         /// <summary>
-        ///Gets or sets the test context which provides
-        ///information about and functionality for the current test run.
+        /// Gets or sets the test context which provides
+        /// information about and functionality for the current test run.
         ///</summary>
         public TestContext TestContext
         {
@@ -27,28 +29,43 @@ namespace SiftSharp.Tests
         }
 
         [Test()]
-        public void ShouldFindMarioWhenMarioExist()
+        public void ShouldFindBWFilterWhenBWFilterExist()
         {
-            Assert.IsTrue(File.Exists(Path.Combine(TestDir,@"mario.png")));
+            Assert.IsTrue(File.Exists(Path.Combine(TestDir,@"images/BW Filter.png")));
         }
 
         [Test()]
-        public void ReadImage_ShouldBeSame_WhenMarioIsComparedToArray()
+        public void ShouldFindInputImageWhenInputImageExist()
         {
-            float[,] expected = new SiftSharp.Image(new float[,] {
-                { 91, 91, 91, 139, 139, 139, 139, 139, 139 },
-                { 91, 91, 91, 139, 139, 139, 139, 139, 139 },
-                { 91, 91, 91, 139, 139, 139, 139, 139, 139 },
-                { 139, 139, 139, 130, 130, 130, 130, 130, 130 },
-                { 139, 139, 139, 130, 130, 130, 130, 130, 130 },
-                { 139, 139, 139, 130, 130, 130, 130, 130, 130 },
-                { 139, 139, 139, 130, 130, 130, 130, 130, 130 },
-                { 139, 139, 139, 130, 130, 130, 130, 130, 130 },
-                { 139, 139, 139, 130, 130, 130, 130, 130, 130 }
-            }).Get();
+            Assert.IsTrue(File.Exists(Path.Combine(TestDir,@"images/Input Image.png")));
+        }
+
+        [Test()]
+        public void ReadImage_ShouldBeSame_WhenInputImageIsComparedToBWFilter()
+        {
+
+            System.Drawing.Bitmap BWFilter = new System.Drawing.Bitmap(Path.Combine(TestDir, @"images/BW Filter.png"));
+            int width = BWFilter.Width,
+                height = BWFilter.Height;
+            float[,] expected = new float[width, height];
+            System.Drawing.Color colors;
+            LockBitmap inputLocked = new LockBitmap(BWFilter);
+            inputLocked.LockBits();
+
+            // Store grayscale value for each pixel
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    colors = inputLocked.GetPixel(x, y);
+                    expected[x, y] = colors.R;
+                }
+            }
+
+            inputLocked.UnlockBits();
 
             float[,] actual = Image.ReadImage(
-                new System.Drawing.Bitmap(Path.Combine(TestDir, @"mario.png")));
+                new System.Drawing.Bitmap(Path.Combine(TestDir,@"images/Input Image.png")));
 
             Assert.AreEqual(expected, actual);
         }
@@ -56,31 +73,64 @@ namespace SiftSharp.Tests
         [Test()]
         public void BuildImage_ShouldReturnSame_WhenInputIsBW()
         {
-            // Load Mario image
-            System.Drawing.Bitmap marioImage = 
-                new System.Drawing.Bitmap(Path.Combine(TestDir, @"mario.png"));
-            
-            // Get array from mario image
-            float[,] result = Image.ReadImage(
-                new System.Drawing.Bitmap(Path.Combine(TestDir, @"mario.png")));
+            System.Drawing.Bitmap BWFilter = new System.Drawing.Bitmap(Path.Combine(TestDir, @"images/BW Filter.png"));
+            int width = BWFilter.Width,
+                height = BWFilter.Height;
+            float[,] expected = new float[width, height];
+            System.Drawing.Color colors;
+            LockBitmap inputLocked = new LockBitmap(BWFilter);
+            inputLocked.LockBits();
 
-            System.Drawing.Color tempPixel;
-            
-            // Foreach pixel
-            for(int x=0; x < result.GetLength(0); x++)
+            // Store grayscale value for each pixel
+            for (int y = 0; y < height; y++)
             {
-                for (int y = 0; y < result.GetLength(0); y++)
+                for (int x = 0; x < width; x++)
                 {
-                    // Get pixel at current position
-                    tempPixel = marioImage.GetPixel(x, y);
-                    // Assert that both are equal
-                    Assert.AreEqual(
-                        ((tempPixel.R + tempPixel.G + tempPixel.B) / 3), // Expected
-                        result[x, y]);                                   // Actual
+                    colors = inputLocked.GetPixel(x, y);
+                    expected[x, y] = colors.R;
                 }
-
             }
+
+            inputLocked.UnlockBits();
+
             
+            float[,] actual = Image.ReadImage(
+                new System.Drawing.Bitmap(Path.Combine(TestDir,@"images/BW Filter.png")));
+
+            Assert.AreEqual(expected, actual);
         }
+
+        [Test()]
+        public void GenerateGaussianKernel_ShouldReturnExactImage_WhenSigmaIsFiveDotFiveAndSizeIsThree()
+        {
+            System.Drawing.Bitmap GaussianFilter = new System.Drawing.Bitmap(Path.Combine(TestDir, @"images/GaussianBlurred5.5Sigma3x3Kernel.png"));
+            int width = GaussianFilter.Width,
+                height = GaussianFilter.Height;
+            float[,] expected = new float[width, height];
+            System.Drawing.Color colors;
+            LockBitmap inputLocked = new LockBitmap(GaussianFilter);
+            inputLocked.LockBits();
+
+            // Store grayscale value for each pixel
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    colors = inputLocked.GetPixel(x, y);
+                    expected[x, y] = colors.R;
+                }
+            }
+
+            inputLocked.UnlockBits();
+
+            float[,] gaussImage = Image.Gaussian(5.5f, 3, Image.ReadImage(
+                new System.Drawing.Bitmap(Path.Combine(TestDir,@"images/Input Image.png"))));
+
+            float[,] actual = Image.ReadImage(Image.BuildImage(gaussImage));
+
+            Assert.AreEqual(expected, actual);
+        }
+
+
     }
 }

@@ -65,7 +65,13 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="mario.png">
+    <Content Include="images\BW Filter.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="images\GaussianBlurred5.5Sigma3x3Kernel.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="images\Input Image.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
