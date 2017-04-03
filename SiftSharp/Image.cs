@@ -522,8 +522,7 @@ namespace SiftSharp {
             }
             catch  // Errorhandeling here.
             {
-                Console.WriteLine("Bitmap could not be resized"); // Error msg.
-                return img; // Return the non resized bitmap.
+                throw new InvalidOperationException("Bitmap could not be resized"); // Error msg.
             }
         }
 
