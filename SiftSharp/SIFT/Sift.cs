@@ -211,7 +211,7 @@ namespace SiftSharp.SIFT
 
             return histogram;
         }
-        
+
         /// <summary>
         /// Finds the highest bin in histogram
         /// </summary>
