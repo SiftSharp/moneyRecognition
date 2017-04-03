@@ -5,6 +5,8 @@ using System.IO;
 
 namespace SiftSharp {
     public class Image : ICloneable {
+        const int GetWidth = 0;
+        const int GetHeight = 1;
         private float[,] img;
 
         public Image(float[,] img)
@@ -49,6 +51,28 @@ namespace SiftSharp {
         public Image Clone()
         {
             return (Image)this.MemberwiseClone();
+        }
+
+        /// <summary>
+        /// Resizes the image.
+        /// </summary>
+        /// <param name="width">The desired width</param>
+        /// <param name="height">The desired height</param>
+        /// <returns>A resized instance</returns>
+        public Image Resize(int width, int height)
+        {
+            this.img = Resize(width, height, this.img);
+            return this;
+        }
+
+        /// <summary>
+        /// Downsamples the image by deleting every second row and col.
+        /// </summary>
+        /// <returns>A downsampled instance</returns>
+        public Image Downsample()
+        {
+            this.img = Downsample(this.img);
+            return this;
         }
 
         /// <summary>
@@ -479,6 +503,47 @@ namespace SiftSharp {
                 }
             }
             return sum;
+        }
+
+        public static float[,] Resize(int width, int height, float[,] img)
+        {
+            try
+            {
+                Bitmap b = new Bitmap(width, height); // Create a new bitmap.
+                Bitmap source = BuildImage(img);
+                using (Graphics g = Graphics.FromImage(b))  // Graphics object from bitmap.
+                {
+                    // sets interpolationmode to bicubic.
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    // interpolate the image.
+                    g.DrawImage(source, 0, 0, width, height);
+                }
+                return ReadImage(b); // returning the resized bitmap.
+            }
+            catch  // Errorhandeling here.
+            {
+                throw new InvalidOperationException("Bitmap could not be resized"); // Error msg.
+            }
+        }
+
+        /* Removes every second pixel from image array. Render image half size.*/
+        public static float[,] Downsample(float[,] img)
+        {
+            int a = -2, b;
+            int new_width = img.GetLength(GetWidth) / 2;               // Precompute new width and height
+            int new_height = img.GetLength(GetHeight) / 2;             // from old array.
+            float[,] outputArray = new float[new_width, new_height];
+            for (int i = 0; i < new_width; i++)
+            {
+                a += 2;                               // Increase a.
+                b = -2;                               // Reset b.
+                for (int j = 0; j < new_height; j++)
+                {
+                    b += 2;                           // Every second pixel.
+                    outputArray[i, j] = img[a, b];    // Copy old array to new.
+                }
+            }
+            return outputArray;                       // Return output array.
         }
 
 
