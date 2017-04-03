@@ -96,17 +96,33 @@ namespace SiftSharp.SIFT
         /// <returns>int[][][,] DoG pyramid</returns>
         public Image[][] BuildDogPyramid(Image[][] gaussPyramid)
         {
-            int gaussWidth = gaussPyramid[0][0].Get().GetLength(0);
-            int gaussHeight = gaussPyramid[0][0].Get().GetLength(1);
+            // Number of levels in the gaussian pyramid provided
+            int levels = gaussPyramid[0].GetLength(0);
+
+            // DoG Pyramid
             Image[][] dogPyramid = new Image[numberOfOctaves][];
+
+            // Float array to be casted to Image
             float[][][,] result = new float[numberOfOctaves][][,];
 
             //For each octave
             for (int octave = 0; octave < numberOfOctaves; octave++)
             {
+                // Get dimensions of current octave image size
+                int gaussWidth = gaussPyramid[octave][0].Get().GetLength(0);
+                int gaussHeight = gaussPyramid[octave][0].Get().GetLength(1);
+
+                // Set size of octave
+                result[octave] = new float[levels - 1][,];
+
+                // Set size of octave in pyramid
+                dogPyramid[octave] = new Image[levels - 1];
+
                 //For each picture in each octave (from 1 to +1 because of 2 extra layers (s+3 in gaussPyr))
-                for (int level = 1; level < levelsInOctave + 1; level++)
-                {
+                for (int level = 1; level < levels; level++)
+                { 
+                    result[octave][level - 1] = new float[gaussWidth, gaussHeight];
+
                     //Get image
                     float[,] currentImage = gaussPyramid[octave][level].Get();
                     float[,] prevImage = gaussPyramid[octave][level - 1].Get();
@@ -119,10 +135,10 @@ namespace SiftSharp.SIFT
                         {
                             //Subtract each pixel x,y in current image indexed from one with previous for each level
                             result[octave][level-1][x, y] =
-                                currentImage[x, y] - prevImage[x, y];
+                                (currentImage[x, y] - prevImage[x, y]);
                         }
                     }
-                    dogPyramid[octave][level] = new Image(result[octave][level - 1]);
+                    dogPyramid[octave][level - 1] = new Image(result[octave][level - 1]);
                 }
             }
             return dogPyramid;
