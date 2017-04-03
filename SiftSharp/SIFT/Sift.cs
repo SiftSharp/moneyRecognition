@@ -66,12 +66,12 @@ namespace SiftSharp.SIFT
             for (int o = 0; o < octaves; o++)
             {
                 pyramid[o] = new Image[levels + extremaFactor];
-                float sigma = initialSigma * ((o + 1) * sigmaFactor);
-
+                
                 for (int l = 0; l < levels + extremaFactor; l++)
                 {
                     if(o == 0 && l == 0)
                     {
+                        // If first level on first octave
                         pyramid[o][l] = tempImage.Clone();
                     }
                     else if(l == 0)
