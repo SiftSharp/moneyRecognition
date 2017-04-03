@@ -23,10 +23,28 @@ namespace SiftSharp.SIFT
         /// <param name="octaves">Octaves to build</param>
         /// <param name="levels">Levels per octave to filter</param>
         /// <returns>Gaussian pyramid</returns>
-        Image[][] GaussianPyramid(Image input, int octaves, int levels)
+        public Image[][] GaussianPyramid(Image input, int octaves, int levels)
         {
             // Derived from Lowe 2004
             float initialSigma = (float)Math.Sqrt(2);
+            double[] sigmas = new double[levels + 3];
+
+            // https://github.com/robwhess/opensift/blob/master/src/sift.c#L252
+            // precompute Gaussian sigmas using the following formula:
+            // \sigma_{total}^2 = \sigma_{i}^2 + \sigma_{i-1}^2
+            // sig[i] is the incremental sigma value needed to compute 
+            // the actual sigma of level i. Keeping track of incremental
+            // sigmas vs. total sigmas keeps the gaussian kernel small.
+            float k = (float)Math.Pow(2.0, 1.0 / levels);
+
+            sigmas[0] = initialSigma;
+            sigmas[1] = initialSigma * Math.Sqrt(k * k - 1);
+
+            for (int i = 2; i < levels + 3; i++)
+            {
+                sigmas[i] = sigmas[i - 1] * k;
+            }
+
             // factor between sigma of each blurred image
             float sigmaFactor = (float)Math.Pow(2.0, 1.0 / levels);
             // Clone image into temporary image
@@ -48,19 +66,24 @@ namespace SiftSharp.SIFT
             for (int o = 0; o < octaves; o++)
             {
                 pyramid[o] = new Image[levels + extremaFactor];
-                float sigma = initialSigma * (o * sigmaFactor);
-
+                
                 for (int l = 0; l < levels + extremaFactor; l++)
                 {
-                    // Blur image with sigma
-                    pyramid[o][l] = tempImage.Clone().Gaussian(sigma);
-
-                    // Step up sigma
-                    sigma *= sigmaFactor;
+                    if(o == 0 && l == 0)
+                    {
+                        // If first level on first octave
+                        pyramid[o][l] = tempImage.Clone();
+                    }
+                    else if(l == 0)
+                    {
+                        // Downsample image by factore of 2
+                        pyramid[o][l] = pyramid[o - 1][levels - 1].Clone().Downsample();
+                    }else
+                    {
+                        // Blur image with sigma
+                        pyramid[o][l] = pyramid[o][l - 1].Clone().Gaussian((float)sigmas[l]);
+                    }
                 }
-
-                // Downsample image by factore of 2
-                tempImage = tempImage.Clone().Downsample();
             }
 
             return pyramid;
@@ -138,7 +161,7 @@ namespace SiftSharp.SIFT
                 for (int j = -radius; j <= radius; j++)
                 {
                     // Make sure that pixel is within image
-                    if (i > 0 && i < width - 1 && i > 0 && i < height - 1)
+                    if (i > 0 && i < width - 1 && j > 0 && j < height - 1)
                     {
                         double dx = inputConverted[x + i + 1, y + j] - inputConverted[x + i - 1, y + j];
                         double dy = inputConverted[x + i, y + j - 1] - inputConverted[x + i, y + j + 1];
