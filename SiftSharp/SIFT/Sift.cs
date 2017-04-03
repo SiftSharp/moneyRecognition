@@ -5,8 +5,104 @@ namespace SiftSharp.SIFT
 {
     public class Sift
     {
-        public Sift()
+        int levelsInOctave;
+        int numberOfOctaves;
+        Image input;
+
+        public Sift(Image input, int levelsInOctave, int numberOfOctaves)
         {
+            this.input = input;
+            this.levelsInOctave = levelsInOctave;
+            this.numberOfOctaves = numberOfOctaves;
+        }
+
+        /// <summary>
+        /// Builds a Gaussian pyramid
+        /// </summary>
+        /// <param name="input">Image to build pyramid on</param>
+        /// <param name="octaves">Octaves to build</param>
+        /// <param name="levels">Levels per octave to filter</param>
+        /// <returns>Gaussian pyramid</returns>
+        Image[][] GaussianPyramid(Image input, int octaves, int levels)
+        {
+            // Derived from Lowe 2004
+            float initialSigma = (float)Math.Sqrt(2);
+            // factor between sigma of each blurred image
+            float sigmaFactor = (float)Math.Pow(2.0, 1.0 / levels);
+            // Clone image into temporary image
+            Image tempImage = input.Clone();
+
+            Image[][] pyramid = new Image[octaves][];
+
+            // https://stackoverflow.com/questions/2704844/how-to-use-dog-pyramid-in-sift
+            // https://github.com/aminert/CBIR/blob/master/SIFT.m#L120
+            // In order to detect keypoints on s intervals per octave, 
+            // we must generate s+3 blurred images in the gaussian 
+            // pyramid. This is becuase s + 3 blurred images generates
+            // s + 2 DOG images, and two images are needed (one at the 
+            // highest and one lowest scales of the octave) for 
+            // extrema detection.
+            int extremaFactor = 3;
+
+            // Foreach octave and foreach level
+            for (int o = 0; o < octaves; o++)
+            {
+                pyramid[o] = new Image[levels + extremaFactor];
+                float sigma = initialSigma * (o * sigmaFactor);
+
+                for (int l = 0; l < levels + extremaFactor; l++)
+                {
+                    // Blur image with sigma
+                    pyramid[o][l] = tempImage.Clone().Gaussian(sigma);
+
+                    // Step up sigma
+                    sigma *= sigmaFactor;
+                }
+
+                // Downsample image by factore of 2
+                tempImage = tempImage.Clone().Downsample();
+            }
+
+            return pyramid;
+        }
+
+        /// <summary>
+        /// Creates DoG in Scale Space from Gaussian Pyramid in Scale Space
+        /// </summary>
+        /// <param name="gaussPyramid" type="int[][][,]">Gauss pyramid</param>
+        /// <returns>int[][][,] DoG pyramid</returns>
+        public Image[][] BuildDogPyramid(Image[][] gaussPyramid)
+        {
+            int gaussWidth = gaussPyramid[0][0].Get().GetLength(0);
+            int gaussHeight = gaussPyramid[0][0].Get().GetLength(1);
+            Image[][] dogPyramid = new Image[numberOfOctaves][];
+            float[][][,] result = new float[numberOfOctaves][][,];
+
+            //For each octave
+            for (int octave = 0; octave < numberOfOctaves; octave++)
+            {
+                //For each picture in each octave (from 1 to +1 because of 2 extra layers (s+3 in gaussPyr))
+                for (int level = 1; level < levelsInOctave + 1; level++)
+                {
+                    //Get image
+                    float[,] currentImage = gaussPyramid[octave][level].Get();
+                    float[,] prevImage = gaussPyramid[octave][level - 1].Get();
+
+                    //For each y in the image
+                    for (int y = 0; y < currentImage.GetLength(1); y++)
+                    {
+                        //For each x in the image
+                        for (int x = 0; x < currentImage.GetLength(0); x++)
+                        {
+                            //Subtract each pixel x,y in current image indexed from one with previous for each level
+                            result[octave][level-1][x, y] =
+                                currentImage[x, y] - prevImage[x, y];
+                        }
+                    }
+                    dogPyramid[octave][level] = new Image(result[octave][level - 1]);
+                }
+            }
+            return dogPyramid;
         }
 
         /// <summary>
