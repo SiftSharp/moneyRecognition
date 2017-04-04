@@ -17,8 +17,8 @@ namespace SiftSharp.SIFT
         /// <returns></returns>
         public static Bitmap DrawFeature(Bitmap bitmap, Feature feat)
         {
-            return DrawFeature(bitmap, (int)feat.x, (int)feat.y, (int)Math.Round(Sift.orientationRadius * feat.scl),
-                (float)feat.ori, feat.level);
+            return DrawFeature(bitmap, (int)feat.x, (int)feat.y, (int)Math.Round(Sift.orientationRadius * feat.scale),
+                (float)feat.orientation, feat.level);
         }
 
         /// <summary>

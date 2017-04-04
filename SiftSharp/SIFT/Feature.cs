@@ -8,15 +8,21 @@ namespace SiftSharp.SIFT
 {
     public class Feature
     {
-        public double x;                      /**< x coord */
-        public double y;                      /**< y coord */
-        public double scl;                    /**< scale of a Lowe-style feature */
-        public double ori;                    /**< orientation of a Lowe-style feature */
-        public double[] descr;                /**< descriptor */
-        public int type;                      /**< feature type, OXFD or LOWE */
-        public int category;                  /**< all-purpose feature category */
-        public int octave;                    /**< octave Lowe-style feature */
-        public int level;                     /**< level Lowe-style feature */
-        public double subLevel;                  /**< level Lowe-style feature */
+        // X Coordinate
+        public double x;
+        // Y Coordinate
+        public double y;
+        // Scale of feature
+        public double scale;
+        // Orientation of feaute in form of percentage of circle
+        public double orientation;
+        // Descriptor
+        public double[] descr;
+        // Octave feature is in
+        public int octave;
+        // Level feature is in
+        public int level;
+        // Sublevel feature is in
+        public double subLevel;
     }
 }

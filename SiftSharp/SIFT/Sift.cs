@@ -10,14 +10,13 @@ namespace SiftSharp.SIFT
         private static float initialSigma = (float)Math.Sqrt(2);
         private static float contrastTresh = 0.04F;
         private static float curvatureTresh = 10;
+        // Number of bins used for determining orientation of feaeture
+        private static int orientationBins = 36;
         // determines gaussian sigma for orientation assignment
         public static float sigmaOrientationFactor = 1.5F;
         // determines the radius of the region used in orientation assignment
         public static float orientationRadius =  3.0F * sigmaOrientationFactor;
-
-        // Random instance
-        private static Random rnd = new Random();
-
+        
         private int levelsInOctave;
         private int numberOfOctaves;
         private Image input;
@@ -55,6 +54,11 @@ namespace SiftSharp.SIFT
             features = FeatureOrientations(gaussPyr, features);
         }
 
+        /// <summary>
+        /// Find features in scale space based on various calcluations
+        /// </summary>
+        /// <param name="dogPyr">Difference-of-Gaussian pyramid</param>
+        /// <returns>Array of features</returns>
         public Feature[] ScaleSpaceExtremas(Image[][] dogPyr)
         {
             // Octaves in the dog pyramid provided
@@ -91,9 +95,14 @@ namespace SiftSharp.SIFT
             return listedKeypoints.ToArray();
         }
 
+        /// <summary>
+        /// Finds and assigns orientation to features
+        /// </summary>
+        /// <param name="gaussPyr">Difference-of-Gaussian pyramid</param>
+        /// <param name="features">Array of features</param>
+        /// <returns>Array of features with orientations</returns>
         public Feature[] FeatureOrientations(Image[][] gaussPyr, Feature[] features)
         {
-            int bins = 36;
             for (int i = 0; i < features.Length; i++)
             {
                 Feature curFeat = features[i];
@@ -101,13 +110,13 @@ namespace SiftSharp.SIFT
                     gaussPyr[curFeat.octave][curFeat.level],
                     (int)curFeat.x,
                     (int)curFeat.y,
-                    bins,
-                    (int)Math.Round(orientationRadius * curFeat.scl),
-                    sigmaOrientationFactor * curFeat.scl
+                    orientationBins,
+                    (int)Math.Round(orientationRadius * curFeat.scale),
+                    sigmaOrientationFactor * curFeat.scale
                 );
                 
                 int orientationIndex = histogram.ToList().IndexOf(histogram.Max());
-                features[i].ori = ((float)orientationIndex / bins) * (2 * Math.PI);
+                features[i].orientation = ((float)orientationIndex / orientationBins) * (2 * Math.PI);
             }
             return features;
         }
@@ -115,16 +124,16 @@ namespace SiftSharp.SIFT
         /// <summary>
         /// Determines whether a feature is too edge like to be stable by
         /// computing the ratio of curvatures at that feature.
-        /// Based on Section 4.1 in Lowes.
+        /// Based on Section 4.1 in Lowe's paper.
         /// </summary>
         /// <param name="dogImage" type="Image">dogImage</param>
         /// <param name="x" type="int">x coordinate</param>
         /// <param name="y" type="int">y coordinate</param>
         /// <param name="curvatureThreshold" type="float">Curvature threshold</param>
         /// <returns>bool</returns>
-        public bool IsTooEdgeLike(Image dogImage, int x, int y, float curvatureThreshold = 10F)
+        public bool IsTooEdgeLike(Image dogImage, int x, int y, float curvatureThreshold)
         {
-            float trace = 0, determinant = 0;
+            float trace = 0F, determinant = 0F;
             float[,] currentImage = dogImage.Get();
             float pixelVal = currentImage[x, y];
 
@@ -140,14 +149,10 @@ namespace SiftSharp.SIFT
             determinant = dxx * dyy - dxy * dxy;
 
             //Negative determinant = reject feature
-            if (determinant <= 0)
-            {
-                return true;
-            }
-
             //If true => contrast great enough
-            if (trace * trace / determinant < (curvatureThreshold + 1.0) * (curvatureThreshold + 1.0) /
-                curvatureThreshold)
+            if (determinant > 0 && ((trace * trace) / determinant) < 
+                ((curvatureThreshold + 1.0) * (curvatureThreshold + 1.0) /
+                curvatureThreshold))
             {
                 return false;
             }
@@ -156,11 +161,18 @@ namespace SiftSharp.SIFT
             return true;
         }
 
+        /// <summary>
+        /// Finds and assigns scale to array of features
+        /// </summary>
+        /// <param name="features">Array of Features</param>
+        /// <param name="sigma">Sigma</param>
+        /// <param name="numberOflevels">Number of levels per octave</param>
+        /// <returns></returns>
         public static Feature[] FeatureScales(Feature[] features, float sigma, int numberOflevels)
         {
             for (int i = 0; i < features.Length; i++)
             {
-                features[i].scl = sigma * Math.Pow(2.0, 
+                features[i].scale = sigma * Math.Pow(2.0, 
                     (features[i].octave) + ((features[i].level + features[i].subLevel) / numberOflevels));
             }
             return features;

@@ -11,9 +11,8 @@ namespace SiftSharp.SIFT
             int y, int numberOfLevels, float curvatureTresh)
         {
             double xLevel = 0, xRow = 0, xCol = 0;
-            int i = 0;
             int maxSteps = 5;
-            while (i < maxSteps)
+            for (int i = 0; i < maxSteps; i++)
             {
                 InterpolationStep(dogPyr, octave, level, x, y, out xLevel, out xRow, out xCol);
                 if (Math.Abs(xLevel) < 0.5 && Math.Abs(xRow) < 0.5 && Math.Abs(xCol) < 0.5)
@@ -31,17 +30,10 @@ namespace SiftSharp.SIFT
                 {
                     return null;
                 }
-
-                i++;
             }
-
-            if (i >= maxSteps)
-            {
-                return null;
-            }
-
-            double contr = InterpolatedPixelContrast(dogPyr, octave, level, x, y, xLevel, xRow, xCol);
-            if (Math.Abs(contr) < curvatureTresh / numberOfLevels)
+            
+            double contrast = InterpolatedPixelContrast(dogPyr, octave, level, x, y, xLevel, xRow, xCol);
+            if (Math.Abs(contrast) < curvatureTresh / numberOfLevels)
             {
                 return null;
             }
@@ -57,7 +49,7 @@ namespace SiftSharp.SIFT
         }
 
         /// <summary>
-        /// Calculates interpolated contrast. Based on Equation 3 from Lowe's.
+        /// Calculates interpolated contrast. Based on Equation 3 from Lowe's paper.
         /// </summary>
         /// <param name="dogPyr" type="Image[][]">Difference-of-Gaussian pyramid</param>
         /// <param name="octave">Octaves in pyramid</param>
@@ -73,12 +65,12 @@ namespace SiftSharp.SIFT
         {
             Vector<double> intrVector = new DenseVector(new double[] { xCol, xRow, xLevel });
             Matrix<double> derivative = Derivative3D(dogPyr, octave, level, x, y).ToColumnMatrix();
-            Vector<double> IntrContr = derivative.Transpose().Multiply(intrVector);
-            return dogPyr[octave][level].Get()[x, y] + IntrContr[0] * 0.5;
+            Vector<double> intrContrast = derivative.Transpose().Multiply(intrVector);
+            return dogPyr[octave][level].Get()[x, y] + intrContrast[0] * 0.5;
         }
 
         /// <summary>
-        /// Performs one step of extremum interpolation. Equation 3 from Lowes.
+        /// Performs one step of extremum interpolation. Equation 3 from Lowe's paper.
         /// </summary>
         /// <param name="dogPyr" type="Image[][]">Difference-of-Gaussian pyramid</param>
         /// <param name="octave">Octaves in pyramid</param>
@@ -120,7 +112,7 @@ namespace SiftSharp.SIFT
             float[,] nextImage = dogPyramid[octave][level - 1].Get();
             float[,] prevImage = dogPyramid[octave][level + 1].Get();
 
-            //pixel val
+            //pixel value at current x,y
             float value = currentImage[x, y];
 
             //partial derivates are being computed
