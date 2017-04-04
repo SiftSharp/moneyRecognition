@@ -1,22 +1,175 @@
 ﻿using System.Linq;
 using System;
-using System.Drawing;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SiftSharp.SIFT
 {
     public class Sift
     {
-        int levelsInOctave;
-        int numberOfOctaves;
-        Image input;
+        private static float initialSigma = 1.6F;
+        private static float contrastTresh = 0.04F;
+        private static float curvatureTresh = 10F;
+        // Number of bins used for determining orientation of feaeture
+        private static int orientationBins = 36;
+        // determines gaussian sigma for orientation assignment
+        public static float sigmaOrientationFactor = 1.5F;
+        // determines the radius of the region used in orientation assignment
+        public static float orientationRadius =  3.0F * sigmaOrientationFactor;
 
+        public Feature[] features { get; private set; }
+        public Image[][] gaussPyr { get; private set; }
+        public Image[][] dogPyr { get; private set; }
+
+        /// <summary>
+        /// SIFT algorithm as described in Distinctive Image Features from
+        /// Scale-Invariant Keypoints by Lowe 2004
+        /// </summary>
+        /// <param name="input" type="SiftSharp.Image">Image to find features in</param>
+        /// <param name="levelsInOctave">Levels per octave</param>
+        /// <param name="numberOfOctaves">Number of octaves</param>
         public Sift(Image input, int levelsInOctave, int numberOfOctaves)
         {
-            this.input = input;
-            this.levelsInOctave = levelsInOctave;
-            this.numberOfOctaves = numberOfOctaves;
+            // Build Gaussian Pyramid
+            gaussPyr = GaussianPyramid(input, numberOfOctaves, levelsInOctave);
+
+            // Build Difference-of-Gaussian Pyramid
+            dogPyr = BuildDogPyramid(gaussPyr);
+
+            // Find keypoints in Scale Space
+            features = ScaleSpaceExtremas(dogPyr);
+
+            // Assign scales to features
+            features = FeatureScales(features, initialSigma, levelsInOctave);
+
+            // Assign orientation to features
+            features = FeatureOrientations(gaussPyr, features);
         }
 
+        /// <summary>
+        /// Find features in scale space based on various calcluations
+        /// </summary>
+        /// <param name="dogPyr">Difference-of-Gaussian pyramid</param>
+        /// <returns>Array of features</returns>
+        public Feature[] ScaleSpaceExtremas(Image[][] dogPyr)
+        {
+            // Octaves in the dog pyramid provided
+            int octaves = dogPyr.GetLength(0);
+            // Number of levels in the dog pyramid provided
+            int levels = dogPyr[0].GetLength(0);
+
+            List<Feature> listedKeypoints = 
+                new List<Feature>();
+            
+            for (int o = 0; o < octaves; o++)
+            {
+                for (int l = 1; l < levels - 2; l++)
+                {
+                    float[,] currentLayer = dogPyr[o][l].Get();
+                    for (int x = 1; x < currentLayer.GetLength(0) - 2; x++)
+                    {
+                        for (int y = 1; y < currentLayer.GetLength(1) - 2; y++)
+                        {
+                            if (dogPyr[o][l].Get()[x, y] > contrastTresh && IsExtremum(dogPyr, x, y, o, l))
+                            {
+                                Feature feat =
+                                    Interpolation.InterpolatesExtremum(dogPyr, o, l, x, y, levels, curvatureTresh);
+
+                                if(feat != null && IsTooEdgeLike(dogPyr[o][l],x,y,curvatureTresh))
+                                {
+                                    listedKeypoints.Add(feat);
+                                }
+                            }
+                        }
+                    }
+               }
+            }
+            return listedKeypoints.ToArray();
+        }
+
+        /// <summary>
+        /// Finds and assigns orientation to features
+        /// </summary>
+        /// <param name="gaussPyr">Difference-of-Gaussian pyramid</param>
+        /// <param name="features">Array of features</param>
+        /// <returns>Array of features with orientations</returns>
+        public Feature[] FeatureOrientations(Image[][] gaussPyr, Feature[] features)
+        {
+            for (int i = 0; i < features.Length; i++)
+            {
+                Feature curFeat = features[i];
+                double[] histogram = Histogram(
+                    gaussPyr[curFeat.octave][curFeat.level],
+                    (int)curFeat.x,
+                    (int)curFeat.y,
+                    orientationBins,
+                    (int)Math.Round(orientationRadius * curFeat.scale),
+                    sigmaOrientationFactor * curFeat.scale
+                );
+                
+                int orientationIndex = histogram.ToList().IndexOf(histogram.Max());
+                features[i].orientation = ((float)orientationIndex / orientationBins) * (2 * Math.PI);
+            }
+            return features;
+        }
+
+        /// <summary>
+        /// Determines whether a feature is too edge like to be stable by
+        /// computing the ratio of curvatures at that feature.
+        /// Based on Section 4.1 in Lowe's paper.
+        /// </summary>
+        /// <param name="dogImage" type="Image">dogImage</param>
+        /// <param name="x" type="int">x coordinate</param>
+        /// <param name="y" type="int">y coordinate</param>
+        /// <param name="curvatureThreshold" type="float">Curvature threshold</param>
+        /// <returns>bool</returns>
+        public bool IsTooEdgeLike(Image dogImage, int x, int y, float curvatureThreshold)
+        {
+            float trace = 0F, determinant = 0F;
+            float[,] currentImage = dogImage.Get();
+            float pixelVal = currentImage[x, y];
+
+            //Partial derivatives
+            float dxx = currentImage[x, y + 1] + currentImage[x, y - 1] - 2 * pixelVal;
+            float dyy = currentImage[x + 1, y] + currentImage[x - 1, y] - 2 * pixelVal;
+            float dxy = (currentImage[x + 1, y + 1]) -
+                        (currentImage[x - 1, y + 1]) -
+                        (currentImage[x - 1, y - 1]) / 4.0F;
+
+            //Calculate trace & determinant
+            trace = dxx + dyy;
+            determinant = dxx * dyy - dxy * dxy;
+
+            //Negative determinant = reject feature
+            //If true => contrast great enough
+            if (determinant > 0 && ((trace * trace) / determinant) < 
+                ((curvatureThreshold + 1.0) * (curvatureThreshold + 1.0) /
+                curvatureThreshold))
+            {
+                return false;
+            }
+
+            //If not return too edge like
+            return true;
+        }
+
+        /// <summary>
+        /// Finds and assigns scale to array of features
+        /// </summary>
+        /// <param name="features">Array of Features</param>
+        /// <param name="sigma">Sigma</param>
+        /// <param name="numberOflevels">Number of levels per octave</param>
+        /// <returns></returns>
+        public static Feature[] FeatureScales(Feature[] features, float sigma, int numberOflevels)
+        {
+            for (int i = 0; i < features.Length; i++)
+            {
+                features[i].scale = sigma * Math.Pow(2.0, 
+                    (features[i].octave) + ((features[i].level + features[i].subLevel) / numberOflevels));
+            }
+            return features;
+        }
+        
         /// <summary>
         /// Builds a Gaussian pyramid
         /// </summary>
@@ -24,10 +177,8 @@ namespace SiftSharp.SIFT
         /// <param name="octaves">Octaves to build</param>
         /// <param name="levels">Levels per octave to filter</param>
         /// <returns>Gaussian pyramid</returns>
-        public Image[][] GaussianPyramid(Image input, int octaves, int levels)
+        public static Image[][] GaussianPyramid(Image input, int octaves, int levels)
         {
-            // Derived from Lowe 2004
-            float initialSigma = (float)Math.Sqrt(2);
             double[] sigmas = new double[levels + 3];
 
             // https://github.com/robwhess/opensift/blob/master/src/sift.c#L252
@@ -45,9 +196,7 @@ namespace SiftSharp.SIFT
             {
                 sigmas[i] = sigmas[i - 1] * k;
             }
-
-            // factor between sigma of each blurred image
-            float sigmaFactor = (float)Math.Pow(2.0, 1.0 / levels);
+            
             // Clone image into temporary image
             Image tempImage = input.Clone();
 
@@ -95,19 +244,20 @@ namespace SiftSharp.SIFT
         /// </summary>
         /// <param name="gaussPyramid" type="int[][][,]">Gauss pyramid</param>
         /// <returns>int[][][,] DoG pyramid</returns>
-        public Image[][] BuildDogPyramid(Image[][] gaussPyramid)
+        public static Image[][] BuildDogPyramid(Image[][] gaussPyramid)
         {
             // Number of levels in the gaussian pyramid provided
             int levels = gaussPyramid[0].GetLength(0);
+            int octaves = gaussPyramid.GetLength(0);
 
             // DoG Pyramid
-            Image[][] dogPyramid = new Image[numberOfOctaves][];
+            Image[][] dogPyramid = new Image[octaves][];
 
             // Float array to be casted to Image
-            float[][][,] result = new float[numberOfOctaves][][,];
+            float[][][,] result = new float[octaves][][,];
 
             //For each octave
-            for (int octave = 0; octave < numberOfOctaves; octave++)
+            for (int octave = 0; octave < octaves; octave++)
             {
                 // Get dimensions of current octave image size
                 int gaussWidth = gaussPyramid[octave][0].Get().GetLength(0);
@@ -120,8 +270,10 @@ namespace SiftSharp.SIFT
                 dogPyramid[octave] = new Image[levels - 1];
 
                 //For each picture in each octave (from 1 to +1 because of 2 extra layers (s+3 in gaussPyr))
-                for (int level = 1; level < levels; level++)
-                { 
+
+                //for (int level = 1; level < levels; level++)
+                Parallel.For(1, levels, level =>
+                {
                     result[octave][level - 1] = new float[gaussWidth, gaussHeight];
 
                     //Get image
@@ -135,12 +287,13 @@ namespace SiftSharp.SIFT
                         for (int x = 0; x < currentImage.GetLength(0); x++)
                         {
                             //Subtract each pixel x,y in current image indexed from one with previous for each level
-                            result[octave][level-1][x, y] =
-                                (currentImage[x, y] - prevImage[x, y]);
+                            result[octave][level - 1][x, y] =
+                                Math.Abs(currentImage[x, y] - prevImage[x, y]);
                         }
                     }
                     dogPyramid[octave][level - 1] = new Image(result[octave][level - 1]);
-                }
+                });
+                //}
             }
             return dogPyramid;
         }
@@ -157,7 +310,7 @@ namespace SiftSharp.SIFT
         /// <returns>
         /// Returns a histogram array of defined bins representing orientations between 0 and 2 PI
         /// </returns>
-        public double[] Histogram(Image input, int x, int y, int bins, int radius, double sigma)
+        public static double[] Histogram(Image input, int x, int y, int bins, int radius, double sigma)
         {
             // Histogram to be returned
             double[] histogram = new double[bins];
@@ -178,7 +331,8 @@ namespace SiftSharp.SIFT
                 for (int j = -radius; j <= radius; j++)
                 {
                     // Make sure that pixel is within image
-                    if (i > 0 && i < width - 1 && j > 0 && j < height - 1)
+                    if (x + i > radius && x + i < width - radius && 
+                        y + j > radius && y + j < height - radius)
                     {
                         double dx = inputConverted[x + i + 1, y + j] - inputConverted[x + i - 1, y + j];
                         double dy = inputConverted[x + i, y + j - 1] - inputConverted[x + i, y + j + 1];
@@ -240,7 +394,7 @@ namespace SiftSharp.SIFT
         /// <param name="octave" type="int">The octave the feature was found in</param>
         /// <param name="level" type="int">The picture of the octave the feature was found in</param>
         /// <returns>Bool true or false for a point</returns>
-        public bool IsExtremum(Image[][] dogPyramid, int x, int y, int octave, int level)
+        public static bool IsExtremum(Image[][] dogPyramid, int x, int y, int octave, int level)
         {
             bool isMinimum = false;
             bool isMaximum = false;
@@ -255,15 +409,21 @@ namespace SiftSharp.SIFT
                 {
                     for (int yIndex = -1; yIndex <= 1; yIndex++)
                     {
+                        if (imgIndex == 0 && xIndex == 0 && yIndex == 0)
+                        {
+                            continue;
+                        }
+
+                        float levelImage = (dogPyramid[octave][level + imgIndex].Get()[x + xIndex, y + yIndex]);
+                        
+                        
                         //If the pixel of feature is greather than neighbor
-                        if (featurePixel >
-                            dogPyramid[octave][level + imgIndex].Get()[x + xIndex, y + yIndex])
+                        if (featurePixel > levelImage)
                         {
                             isMaximum = true;
                         }
                         //If the pixel of feature is less than neighbor
-                        else if (featurePixel <
-                                 dogPyramid[octave][level + imgIndex].Get()[x + xIndex, y + yIndex])
+                        else if (featurePixel < levelImage)
                         {
                             isMinimum = true;
                         }
@@ -278,48 +438,5 @@ namespace SiftSharp.SIFT
             }
             return isMinimum || isMaximum;
         }
-
-        /// <summary>
-        /// Draws a circle with a line indicating both scale and orientation of keypoint
-        /// </summary>
-        /// <param name="bitmap">Input bitmap</param>
-        /// <param name="x">X coordinate of keypoint</param>
-        /// <param name="y">Y coordinate of keypoint</param>
-        /// <param name="radius">Radius of keypoint</param>
-        /// <param name="orientation">Percentage of full circle</param>
-        /// <returns>Returns same bitmap as input but with drawn circle and line</returns>
-        public static Bitmap DrawFeature(Bitmap bitmap, int x, int y, int radius, float orientation)
-        {
-            // Random instance
-            Random rnd = new Random();
-            // Array of hex codes for bright neon colors
-            string[] neonColors = new string[] {
-                "#FFFF00","#FFFF33","#F2EA02","#E6FB04","#FF0000","#FD1C03",
-                "#FF3300","#FF6600","#00FF00","#00FF33","#00FF66","#33FF00",
-                "#00FFFF","#099FFF","#0062FF","#0033FF","#FF00FF","#FF00CC",
-                "#FF0099","#CC00FF","#9D00FF","#CC00FF","#6E0DD0","#9900FF"
-            };
-
-            // Create graphics instance from bitmap
-            Graphics g = Graphics.FromImage(bitmap);
-
-            // Create instance of pen with random color
-            Pen p = new Pen(ColorTranslator.FromHtml(neonColors[rnd.Next(neonColors.Length) - 1]), 2F);
-
-            // Draw circle with given radius
-            g.DrawEllipse(p, x - radius, y - radius, radius * 2, radius * 2);
-
-            // Calculate radians from float
-            double radians = -(orientation * (2 * Math.PI));
-
-            // Determine second point in orientation line
-            int cx = x + (int)Math.Round(radius * Math.Cos(radians));
-            int cy = y + (int)Math.Round(radius * Math.Sin(radians));
-
-            // Draw line illustrating orientation
-            g.DrawLine(p, new Point(x, y), new Point(cx, cy));
-
-            return bitmap;
-        }
-    }
+   }
 }
