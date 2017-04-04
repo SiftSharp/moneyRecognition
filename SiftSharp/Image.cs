@@ -288,6 +288,10 @@ namespace SiftSharp {
                 {
                     // Truncate pixel values
                     int val = (int)LimitToValues(greyImage[x, y], 0, 255);
+                    if(val < 0)
+                    {
+                        val = 0;
+                    }
 
                     // Save pixel value
                     outputLocked.SetPixel(x, y, Color.FromArgb(
@@ -314,7 +318,7 @@ namespace SiftSharp {
         private static float LimitToValues<T>(T val, int min, int max)
         {
             // Parse number to float
-            float ParsedValue = float.Parse(val.ToString());
+            float ParsedValue = checked(float.Parse(val.ToString()));
 
             // Over
             if (ParsedValue > max)

@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System;
+using System.Drawing;
 
 namespace SiftSharp.SIFT
 {
@@ -23,10 +24,28 @@ namespace SiftSharp.SIFT
         /// <param name="octaves">Octaves to build</param>
         /// <param name="levels">Levels per octave to filter</param>
         /// <returns>Gaussian pyramid</returns>
-        Image[][] GaussianPyramid(Image input, int octaves, int levels)
+        public Image[][] GaussianPyramid(Image input, int octaves, int levels)
         {
             // Derived from Lowe 2004
             float initialSigma = (float)Math.Sqrt(2);
+            double[] sigmas = new double[levels + 3];
+
+            // https://github.com/robwhess/opensift/blob/master/src/sift.c#L252
+            // precompute Gaussian sigmas using the following formula:
+            // \sigma_{total}^2 = \sigma_{i}^2 + \sigma_{i-1}^2
+            // sig[i] is the incremental sigma value needed to compute 
+            // the actual sigma of level i. Keeping track of incremental
+            // sigmas vs. total sigmas keeps the gaussian kernel small.
+            float k = (float)Math.Pow(2.0, 1.0 / levels);
+
+            sigmas[0] = initialSigma;
+            sigmas[1] = initialSigma * Math.Sqrt(k * k - 1);
+
+            for (int i = 2; i < levels + 3; i++)
+            {
+                sigmas[i] = sigmas[i - 1] * k;
+            }
+
             // factor between sigma of each blurred image
             float sigmaFactor = (float)Math.Pow(2.0, 1.0 / levels);
             // Clone image into temporary image
@@ -48,19 +67,24 @@ namespace SiftSharp.SIFT
             for (int o = 0; o < octaves; o++)
             {
                 pyramid[o] = new Image[levels + extremaFactor];
-                float sigma = initialSigma * (o * sigmaFactor);
-
+                
                 for (int l = 0; l < levels + extremaFactor; l++)
                 {
-                    // Blur image with sigma
-                    pyramid[o][l] = tempImage.Clone().Gaussian(sigma);
-
-                    // Step up sigma
-                    sigma *= sigmaFactor;
+                    if(o == 0 && l == 0)
+                    {
+                        // If first level on first octave
+                        pyramid[o][l] = tempImage.Clone();
+                    }
+                    else if(l == 0)
+                    {
+                        // Downsample image by factore of 2
+                        pyramid[o][l] = pyramid[o - 1][levels - 1].Clone().Downsample();
+                    }else
+                    {
+                        // Blur image with sigma
+                        pyramid[o][l] = pyramid[o][l - 1].Clone().Gaussian((float)sigmas[l]);
+                    }
                 }
-
-                // Downsample image by factore of 2
-                tempImage = tempImage.Clone().Downsample();
             }
 
             return pyramid;
@@ -73,17 +97,33 @@ namespace SiftSharp.SIFT
         /// <returns>int[][][,] DoG pyramid</returns>
         public Image[][] BuildDogPyramid(Image[][] gaussPyramid)
         {
-            int gaussWidth = gaussPyramid[0][0].Get().GetLength(0);
-            int gaussHeight = gaussPyramid[0][0].Get().GetLength(1);
+            // Number of levels in the gaussian pyramid provided
+            int levels = gaussPyramid[0].GetLength(0);
+
+            // DoG Pyramid
             Image[][] dogPyramid = new Image[numberOfOctaves][];
+
+            // Float array to be casted to Image
             float[][][,] result = new float[numberOfOctaves][][,];
 
             //For each octave
             for (int octave = 0; octave < numberOfOctaves; octave++)
             {
+                // Get dimensions of current octave image size
+                int gaussWidth = gaussPyramid[octave][0].Get().GetLength(0);
+                int gaussHeight = gaussPyramid[octave][0].Get().GetLength(1);
+
+                // Set size of octave
+                result[octave] = new float[levels - 1][,];
+
+                // Set size of octave in pyramid
+                dogPyramid[octave] = new Image[levels - 1];
+
                 //For each picture in each octave (from 1 to +1 because of 2 extra layers (s+3 in gaussPyr))
-                for (int level = 1; level < levelsInOctave + 1; level++)
-                {
+                for (int level = 1; level < levels; level++)
+                { 
+                    result[octave][level - 1] = new float[gaussWidth, gaussHeight];
+
                     //Get image
                     float[,] currentImage = gaussPyramid[octave][level].Get();
                     float[,] prevImage = gaussPyramid[octave][level - 1].Get();
@@ -96,10 +136,10 @@ namespace SiftSharp.SIFT
                         {
                             //Subtract each pixel x,y in current image indexed from one with previous for each level
                             result[octave][level-1][x, y] =
-                                currentImage[x, y] - prevImage[x, y];
+                                (currentImage[x, y] - prevImage[x, y]);
                         }
                     }
-                    dogPyramid[octave][level] = new Image(result[octave][level - 1]);
+                    dogPyramid[octave][level - 1] = new Image(result[octave][level - 1]);
                 }
             }
             return dogPyramid;
@@ -138,7 +178,7 @@ namespace SiftSharp.SIFT
                 for (int j = -radius; j <= radius; j++)
                 {
                     // Make sure that pixel is within image
-                    if (i > 0 && i < width - 1 && i > 0 && i < height - 1)
+                    if (i > 0 && i < width - 1 && j > 0 && j < height - 1)
                     {
                         double dx = inputConverted[x + i + 1, y + j] - inputConverted[x + i - 1, y + j];
                         double dy = inputConverted[x + i, y + j - 1] - inputConverted[x + i, y + j + 1];
@@ -220,6 +260,49 @@ namespace SiftSharp.SIFT
                 }
             }
             return isMinimum || isMaximum;
+        }
+
+        /// <summary>
+        /// Draws a circle with a line indicating both scale and orientation of keypoint
+        /// </summary>
+        /// <param name="bitmap">Input bitmap</param>
+        /// <param name="x">X coordinate of keypoint</param>
+        /// <param name="y">Y coordinate of keypoint</param>
+        /// <param name="radius">Radius of keypoint</param>
+        /// <param name="orientation">Percentage of full circle</param>
+        /// <returns>Returns same bitmap as input but with drawn circle and line</returns>
+        public static Bitmap DrawFeature(Bitmap bitmap, int x, int y, int radius, float orientation)
+        {
+            // Random instance
+            Random rnd = new Random();
+            // Array of hex codes for bright neon colors
+            string[] neonColors = new string[] {
+                "#FFFF00","#FFFF33","#F2EA02","#E6FB04","#FF0000","#FD1C03",
+                "#FF3300","#FF6600","#00FF00","#00FF33","#00FF66","#33FF00",
+                "#00FFFF","#099FFF","#0062FF","#0033FF","#FF00FF","#FF00CC",
+                "#FF0099","#CC00FF","#9D00FF","#CC00FF","#6E0DD0","#9900FF"
+            };
+
+            // Create graphics instance from bitmap
+            Graphics g = Graphics.FromImage(bitmap);
+
+            // Create instance of pen with random color
+            Pen p = new Pen(ColorTranslator.FromHtml(neonColors[rnd.Next(neonColors.Length) - 1]), 2F);
+
+            // Draw circle with given radius
+            g.DrawEllipse(p, x - radius, y - radius, radius * 2, radius * 2);
+
+            // Calculate radians from float
+            double radians = -(orientation * (2 * Math.PI));
+
+            // Determine second point in orientation line
+            int cx = x + (int)Math.Round(radius * Math.Cos(radians));
+            int cy = y + (int)Math.Round(radius * Math.Sin(radians));
+
+            // Draw line illustrating orientation
+            g.DrawLine(p, new Point(x, y), new Point(cx, cy));
+
+            return bitmap;
         }
     }
 }
