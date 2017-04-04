@@ -7,9 +7,9 @@ namespace SiftSharp.SIFT
 {
     public class Sift
     {
-        private static float initialSigma = (float)Math.Sqrt(2);
+        private static float initialSigma = 1.6F;
         private static float contrastTresh = 0.04F;
-        private static float curvatureTresh = 10;
+        private static float curvatureTresh = 10F;
         // Number of bins used for determining orientation of feaeture
         private static int orientationBins = 36;
         // determines gaussian sigma for orientation assignment
