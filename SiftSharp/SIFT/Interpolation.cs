@@ -6,7 +6,17 @@ namespace SiftSharp.SIFT
 {
     static class Interpolation
     {
-
+        /// <summary>
+        /// Checks if extremum opholds criteria
+        /// </summary>
+        /// <param name="dogPyr">Difference-of-Gaussian pyramid</param>
+        /// <param name="octave">Octave to look in</param>
+        /// <param name="level">Level to look in</param>
+        /// <param name="x">X coordinate</param>
+        /// <param name="y">Y coordinate</param>
+        /// <param name="numberOfLevels">Number of levels per octave</param>
+        /// <param name="curvatureTresh">Curvature threshold</param>
+        /// <returns>Feature or null</returns>
         public static Feature InterpolatesExtremum(Image[][] dogPyr, int octave, int level, int x,
             int y, int numberOfLevels, float curvatureTresh)
         {
