@@ -169,7 +169,7 @@ namespace SiftSharp.SIFT
             int height = input.Get().GetLength(1);
 
             // Exponential denomenator
-            double exponential_denom = 2.0 * sigma * sigma;
+            double exponentialDenom = 2.0 * sigma * sigma;
             
             // from radius left of to radius right
             for (int i = -radius; i <= radius; i++)
@@ -188,7 +188,7 @@ namespace SiftSharp.SIFT
                         double orientation = Math.Atan2(dy, dx);
 
                         // Create a weight for bin ( e^( -(x^2 + y^2) / (2*sigma^2) ) )
-                        double weight = Math.Exp(-(i * i + j * j) / exponential_denom);
+                        double weight = Math.Exp(-(i * i + j * j) / exponentialDenom);
 
                         // We find the percentage of which the orientation fills a full
                         // circle. We do this by first ensuring that we don't end with 
@@ -211,6 +211,23 @@ namespace SiftSharp.SIFT
             }
 
             return histogram;
+        }
+
+        /// <summary>
+        /// Finds most dominant orientation from built histogram
+        /// based on input points.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="bins"></param>
+        /// <param name="radius"></param>
+        /// <param name="sigma"></param>
+        /// <returns></returns>
+        public int DominantOrientation(Image input, int x, int y, int bins, int radius, double sigma)
+        {
+            double[] histogram = Histogram(input, x, y, bins, radius, sigma);
+            return histogram.ToList().IndexOf(histogram.Max());
         }
 
         /// <summary>
