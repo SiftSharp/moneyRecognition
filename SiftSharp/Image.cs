@@ -30,7 +30,7 @@ namespace SiftSharp {
             try {
                 bitmapInput = new Bitmap(path);
             }
-            catch (Exception ex) {
+            catch (Exception) {
                 throw new InvalidDataException(
                     "Either no file is at "+path+" or Image was 'null' and cannot continue...");
             }

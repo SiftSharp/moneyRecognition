@@ -16,10 +16,6 @@ namespace SiftSharp.SIFT
         public static float sigmaOrientationFactor = 1.5F;
         // determines the radius of the region used in orientation assignment
         public static float orientationRadius =  3.0F * sigmaOrientationFactor;
-        
-        private int levelsInOctave;
-        private int numberOfOctaves;
-        private Image input;
 
         public Feature[] features { get; private set; }
         public Image[][] gaussPyr { get; private set; }
@@ -34,10 +30,6 @@ namespace SiftSharp.SIFT
         /// <param name="numberOfOctaves">Number of octaves</param>
         public Sift(Image input, int levelsInOctave, int numberOfOctaves)
         {
-            this.input = input;
-            this.levelsInOctave = levelsInOctave;
-            this.numberOfOctaves = numberOfOctaves;
-
             // Build Gaussian Pyramid
             gaussPyr = GaussianPyramid(input, numberOfOctaves, levelsInOctave);
 
@@ -204,9 +196,7 @@ namespace SiftSharp.SIFT
             {
                 sigmas[i] = sigmas[i - 1] * k;
             }
-
-            // factor between sigma of each blurred image
-            float sigmaFactor = (float)Math.Pow(2.0, 1.0 / levels);
+            
             // Clone image into temporary image
             Image tempImage = input.Clone();
 
