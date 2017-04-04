@@ -76,6 +76,17 @@ namespace SiftSharp {
         }
 
         /// <summary>
+        /// Resizes image to maximal size.
+        /// </summary>
+        /// <param name="max_size">The maximal size of image</param>
+        /// <returns>A resized image instance</returns>
+        public Image Maxsize(int max_size)
+        {
+            this.img = Maxsize(max_size, this.img);
+            return this;
+        }
+
+        /// <summary>
         /// Interface for ICloneable
         /// </summary>
         /// <returns>A clone of this image</returns>
@@ -550,7 +561,44 @@ namespace SiftSharp {
             return outputArray;                       // Return output array.
         }
 
+        /*Sets the maximal size of image.*/
+        public static float[,] Maxsize(int max_size, float[,] image)
+        {
+            double scale;
+            double new_height;
+            double new_width;
+            int width = image.GetLength(GetWidth);
+            int height = image.GetLength(GetHeight);
 
+            if (max_size == width || max_size == height)
+                return image;
+
+            if (width == height)
+            {
+                scale = max_size / Convert.ToDouble(width);
+                new_height = height * scale;
+                new_width = new_height;
+                return Resize(Convert.ToInt32(new_width), Convert.ToInt32(new_height), image);
+            }
+            else if (width > height)
+            {
+                scale = max_size / Convert.ToDouble(width);
+                new_height = height * scale;
+                new_width = max_size;
+                return Resize(Convert.ToInt32(new_width), Convert.ToInt32(new_height), image);
+            }
+            else if (width < height)
+            {
+                scale = max_size / Convert.ToDouble(height);
+                new_width = width * scale;
+                new_height = max_size;
+                return Resize(Convert.ToInt32(new_width), Convert.ToInt32(new_height), image);
+            }
+            else
+            {
+                throw new InvalidDataException();
+            }
+        }
 
     }
 }
