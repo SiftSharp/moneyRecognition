@@ -2,12 +2,23 @@
 using System.Linq;
 using System.Drawing;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace SiftSharp {
     public class Image : ICloneable {
         const int GetWidth = 0;
         const int GetHeight = 1;
         private float[,] img;
+
+        //SlideTypes: Flag used for SlidingWindow()
+        //Used to specifiy whether Convolution or Cross Correlation should be applied when using SlidingWindow()
+        [Flags]
+        public enum SlideTypes
+        {
+            None,
+            Convolution,
+            CrossCorrelation
+        }
 
         public Image(float[,] img)
         {
@@ -44,6 +55,7 @@ namespace SiftSharp {
             return img;
         }
 
+        #region IClonable
         /// <summary>
         /// Creates a clone of this instance
         /// </summary>
@@ -52,6 +64,16 @@ namespace SiftSharp {
         {
             return (Image)this.MemberwiseClone();
         }
+
+        /// <summary>
+        /// Interface for ICloneable
+        /// </summary>
+        /// <returns>A clone of this image</returns>
+        object ICloneable.Clone()
+        {
+            return Clone();
+        }
+        #endregion
 
         /// <summary>
         /// Resizes the image.
@@ -85,31 +107,7 @@ namespace SiftSharp {
             this.img = Maxsize(max_size, this.img);
             return this;
         }
-
-        /// <summary>
-        /// Interface for ICloneable
-        /// </summary>
-        /// <returns>A clone of this image</returns>
-        object ICloneable.Clone()
-        {
-            return Clone();
-        }
-
-
-        public void resize() { }
-        public void scale() { }
-
-
-        //SlideTypes: Flag used for SlidingWindow()
-        //Used to specifiy whether Convolution or Cross Correlation should be applied when using SlidingWindow()
-        [Flags]
-        public enum SlideTypes
-        {
-            None,
-            Convolution,
-            CrossCorrelation
-        }
-
+        
         /// <summary>
         /// This is a helper method for overloading params to Guassian funcion.
         /// This means that if you only provide a sigma value, then the
@@ -225,14 +223,7 @@ namespace SiftSharp {
 
 
 
-
-
-        /* STATIC METHODS */
-
-
-
-
-
+        #region Static Methods
         /// <summary>
         ///     Reads an input bitmap and generates
         ///     a B&W data output
@@ -446,17 +437,25 @@ namespace SiftSharp {
             }
 
             //Loops through image pixels
-            for (int y = kernelCenter; y < (imageHeight - kernelCenter); y++)
+            //for (int y = kernelCenter; y < (imageHeight - kernelCenter); y++)
+            Parallel.For(kernelCenter, (imageHeight - kernelCenter), y =>
             {
                 for (int x = kernelCenter; x < (imageWidth - kernelCenter); x++)
                 {
                     //Loops through all kernels in kernels[] and calls ApplyKernel() with said kernel
                     for (int k = 0; k < numberOfKernels; k++)
                     {
-                        result[k][x, y] = ApplyKernel(imageAsFloat, kernelsAsFloats[k], x, y, slideType);
+                        result[k][x, y] = ApplyKernel(
+                            imageAsFloat, 
+                            kernelsAsFloats[k], 
+                            x, y, 
+                            slideType
+                        );
                     }
                 }
-            }
+            });
+            //}
+
             return result;
         }
 
@@ -520,6 +519,13 @@ namespace SiftSharp {
             return sum;
         }
 
+        /// <summary>
+        /// Resizes an image in float[,] format
+        /// </summary>
+        /// <param name="width">Width after resize</param>
+        /// <param name="height">Height after resize</param>
+        /// <param name="img">Image to be resized</param>
+        /// <returns></returns>
         public static float[,] Resize(int width, int height, float[,] img)
         {
             try
@@ -540,8 +546,12 @@ namespace SiftSharp {
                 throw new InvalidOperationException("Bitmap could not be resized"); // Error msg.
             }
         }
-
-        /* Removes every second pixel from image array. Render image half size.*/
+        
+        /// <summary>
+        /// Removes every second pixel from image array. Render image half size.
+        /// </summary>
+        /// <param name="img">Image to be downsampled</param>
+        /// <returns></returns>
         public static float[,] Downsample(float[,] img)
         {
             int a = -2, b;
@@ -599,6 +609,7 @@ namespace SiftSharp {
                 throw new InvalidDataException();
             }
         }
-
+        
+        #endregion
     }
 }
