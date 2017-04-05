@@ -153,6 +153,60 @@ namespace SiftSharp.SIFT
             });
         }
 
+        /// <summary>
+        /// Interpolates an entry into the array of orientation histograms that form
+        /// the feature descriptor.
+        /// </summary>
+        /// <param name="histogram">3D array of orientation histograms</param>
+        /// <param name="xBin">sub-bin x-coordinate of entry</param>
+        /// <param name="yBin">sub-bin y-coordinate of entry</param>
+        /// <param name="oBin">sub-bin o-coordinate of entry</param>
+        /// <param name="descriptorWidth">Width of descriptor</param>
+        /// <param name="bins">Bins per histogram</param>
+        /// <param name="magnitude">Size of entry</param>
+        /// <returns>Iterpolated histogram</returns>
+        public static double[,,] InterpolateHistogramEntry(double[,,] histogram, double xBin, double yBin, 
+            double oBin, int descriptorWidth, int bins, double magnitude)
+        {
+            int x0 = (int)Math.Floor(xBin);
+            int y0 = (int)Math.Floor(yBin);
+            int o0 = (int)Math.Floor(oBin);
+            double dY = yBin - y0;
+            double dX = xBin - x0;
+            double dO = oBin - o0;
+
+            for (int y = 0; y <= 1; y++)
+            {
+                double yb = y0 + y;
+                if(yb >= 0 && yb < descriptorWidth)
+                {
+                    double vY = magnitude * (y == 0 ? 1.0 - dY : dY);
+                    int row = (int)yb;
+
+                    for (int x = 0; x <= 1; x++)
+                    {
+                        double xb = x0 + x;
+                        if(xb > 0 && xb < descriptorWidth)
+                        {
+                            double vX = vY * (x == 0 ? 1.0 - dX : dX);
+                            int h = (int)xb;
+
+                            for (int o = 0; o <= 1; o++)
+                            {
+                                oBin = (o0 + o) % bins;
+                                double vO = vX * (o == 0 ? 1.0 - dO : dO);
+
+                                histogram[row, h, (int)oBin] += vO;
+                            }
+                        } 
+                    }
+
+                }
+            }
+
+            return histogram;
+        }
+
 
         /// <summary>
         /// Calculates the partial derivatives in x, y, and scale of a 

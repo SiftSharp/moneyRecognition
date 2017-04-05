@@ -16,6 +16,7 @@ namespace SiftSharp.SIFT
         public static float sigmaOrientationFactor = 1.5F;
         // determines the radius of the region used in orientation assignment
         public static float orientationRadius =  3.0F * sigmaOrientationFactor;
+        public static float descriptorMagnitudeThresh = 0.2F;
 
         public Feature[] features { get; private set; }
         public Image[][] gaussPyr { get; private set; }
@@ -44,8 +45,158 @@ namespace SiftSharp.SIFT
 
             // Assign orientation to features
             features = FeatureOrientations(gaussPyr, features);
+
+            // Compute and assign descriptors
+            features = ComputeDescriptors(gaussPyr, features, 4, 8);
         }
 
+        /// <summary>
+        /// Computes descriptors for given array of features
+        /// </summary>
+        /// <param name="gaussPyr">Gaussian Pyramid</param>
+        /// <param name="features">Array of features</param>
+        /// <param name="descriptorWidth">Width of descriptor</param>
+        /// <param name="bins">Number of bins per histogram</param>
+        /// <returns></returns>
+        private Feature[] ComputeDescriptors(Image[][] gaussPyr, Feature[] features, 
+            int descriptorWidth, int bins)
+        {
+            for (int i = 0; i < features.Length; i++)
+            {
+                double[,,] hist = DescriptorHistogram(
+                    gaussPyr[features[i].octave][features[i].level],
+                    features[i].x, 
+                    features[i].y, 
+                    features[i].orientation,
+                    features[i].scale, 
+                    descriptorWidth,
+                    bins
+                );
+
+                features[i].descr = HistogramToDescriptor(hist, descriptorWidth, bins);
+            }
+            return features;
+        }
+
+        /// <summary>
+        /// Builds a descriptor from 3D histogram array and thresholds it against
+        /// predifined threshold variable
+        /// </summary>
+        /// <param name="histogram">Histogram array</param>
+        /// <param name="descriptorWidth">Width of descriptor</param>
+        /// <param name="bins">Number of bins</param>
+        /// <returns>Feature Descriptor</returns>
+        private double[] HistogramToDescriptor(double[,,] histogram, int descriptorWidth, int bins)
+        {
+            // Convert 3D array to 1D
+            double[] desc = histogram.Cast<double>().ToArray();
+            // Normalize descriptor
+            desc = NormalizeDescriptor(desc);
+            // Ensure that no values exceed threshold
+            desc = desc.Select(
+                e => e > descriptorMagnitudeThresh ? descriptorMagnitudeThresh : e).ToArray();
+            // Normalize again
+            desc = NormalizeDescriptor(desc);
+
+            return desc;
+        }
+
+        /// <summary>
+        /// Normalizes a histogram
+        /// </summary>
+        /// <param name="histogram">Histogram</param>
+        /// <returns>Nnormalized histogram</returns>
+        static double[] NormalizeDescriptor(double[] histogram)
+        {
+            // Square each element and sum
+            double lengthSquared = histogram.Select(e => e * e).Sum();
+            // Invert squareroot of squared sum
+            double lengthInverted = 1.0 / Math.Sqrt(lengthSquared);
+
+            // Multiply inverted onto histogram values in
+            // order to get normalized values
+            for (int i = 0; i < histogram.Length; i++)
+            {
+                histogram[i] *= lengthInverted;
+            }
+
+            return histogram;
+        }
+
+        /// <summary>
+        /// Computes the 2D array of orientation histograms that form the feature
+        /// descriptor.Based on Section 6.1 of Lowe's paper.
+        /// </summary>
+        /// <param name="image">Image used in descriptor computation</param>
+        /// <param name="x">X coordinate of center of histogram</param>
+        /// <param name="y">Y coordinate of center of histogram</param>
+        /// <param name="orientation">Canonical orientation</param>
+        /// <param name="scale">Scale relative to image</param>
+        /// <param name="descriptorWidth">Width of histograms</param>
+        /// <param name="bins">Bins per orientation histogram</param>
+        /// <returns>2D array of orientation histograms</returns>
+        private double[,,] DescriptorHistogram(Image image, double x, double y, 
+            double orientation, double scale, int descriptorWidth, int bins)
+        {
+            double cosT = Math.Cos(orientation);
+            double sinT = Math.Cos(orientation);
+            double binsPerRad = bins / (Math.PI * 2);
+            
+            double exponentialDenominator = descriptorWidth * descriptorWidth * 0.5;
+
+            // Scalefactor times scale
+            double histWidth = 3.0 * scale;
+            int radius = (int) (histWidth * Math.Sqrt(2) * (descriptorWidth + 1.0) * 0.5 + 0.5);
+
+            double[,,] histogram = new double[descriptorWidth,descriptorWidth,bins];
+            
+            for(int i = -radius; i <= radius; i++)
+            {
+                for(int j = -radius; j <= radius; j++)
+                {
+                    // Calculate sample's histogram array coords rotated relative to ori.
+                    // Subtract 0.5 so samples that fall e.g. in the center of row 1 (i.e.
+                    // yRotation = 1.5) have full weight placed in row 1 after interpolation.
+
+                    double xRotation = (j * cosT - i * sinT) / histWidth;
+                    double yRotation = (j * sinT + i * cosT) / histWidth;
+
+                    double xBin = xRotation + descriptorWidth / 2 - 0.5;
+                    double yBin = yRotation + descriptorWidth / 2 - 0.5;
+
+
+                    if (yBin > -1.0 && yBin < descriptorWidth && xBin > -1.0 && xBin < descriptorWidth)
+                    {
+                        double gradientMagnitude, gradientOrientation;
+                        if (GradientMagnitudeOrientation(image.Get(), (int)(x + j), (int)(y + i),
+                            out gradientMagnitude, out gradientOrientation))
+                        {
+                            gradientOrientation -= orientation;
+                            while(gradientOrientation < 0.0)
+                            {
+                                gradientOrientation += 2 * Math.PI;
+                            }
+                            while (gradientOrientation >= 2 * Math.PI)
+                            {
+                                gradientOrientation -= 2 * Math.PI;
+                            }
+                            
+                            double oBin = gradientOrientation * binsPerRad;
+                            double weight = Math.Exp(
+                                -(xRotation * xRotation + yRotation * yRotation) / exponentialDenominator);
+
+                            histogram = Interpolation.InterpolateHistogramEntry(
+                                histogram, xBin, yBin, oBin,
+                                descriptorWidth, bins,
+                                gradientMagnitude * weight
+                            );
+                        }
+                    }
+                }
+            }
+            return histogram;
+        }
+        
         /// <summary>
         /// Find features in scale space based on various calcluations
         /// </summary>
@@ -334,12 +485,11 @@ namespace SiftSharp.SIFT
                     if (x + i > radius && x + i < width - radius && 
                         y + j > radius && y + j < height - radius)
                     {
-                        double dx = inputConverted[x + i + 1, y + j] - inputConverted[x + i - 1, y + j];
-                        double dy = inputConverted[x + i, y + j - 1] - inputConverted[x + i, y + j + 1];
+                        double magnitude, orientation;
 
-                        // Calc magnitude and orientation from dx and dy
-                        double magnitude = Math.Sqrt(dx * dx + dy * dy);
-                        double orientation = Math.Atan2(dy, dx);
+                        // Calculate magnitude and orientation
+                        GradientMagnitudeOrientation(
+                            inputConverted, x + i, y + i, out magnitude, out orientation);
 
                         // Create a weight for bin ( e^( -(x^2 + y^2) / (2*sigma^2) ) )
                         double weight = Math.Exp(-(i * i + j * j) / exponentialDenom);
@@ -365,6 +515,33 @@ namespace SiftSharp.SIFT
             }
 
             return histogram;
+        }
+
+        /// <summary>
+        /// Calculates magnitude and orientation for given point in image
+        /// </summary>
+        /// <param name="layer">Image</param>
+        /// <param name="x">X coordinate</param>
+        /// <param name="y">Y coordinate</param>
+        /// <param name="magnitude">Magnitude out parameter</param>
+        /// <param name="orientation">Orientation out parameter</param>
+        /// <returns>Returns true if pixel at x,y coordinates is valid and sets
+        /// magnitude and orientation variables accordingly.</returns>
+        public static bool GradientMagnitudeOrientation(float[,] layer, int x, int y, 
+            out double magnitude, out double orientation)
+        {
+            if (x > 1 && x < layer.GetLength(0) - 1 && y > 1 && y < layer.GetLength(1) - 1)
+            {
+                double dx = layer[x + 1, y] - layer[x - 1, y];
+                double dy = layer[x, y - 1] - layer[x, y + 1];
+
+                // Calc magnitude and orientation from dx and dy
+                magnitude = Math.Sqrt(dx * dx + dy * dy);
+                orientation = Math.Atan2(dy, dx);
+                return true;
+            }
+            magnitude = orientation = 0;
+            return false;
         }
 
         /// <summary>
