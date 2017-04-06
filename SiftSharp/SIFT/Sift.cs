@@ -29,8 +29,15 @@ namespace SiftSharp.SIFT
         /// <param name="input" type="SiftSharp.Image">Image to find features in</param>
         /// <param name="levelsInOctave">Levels per octave</param>
         /// <param name="numberOfOctaves">Number of octaves</param>
-        public Sift(Image input, int levelsInOctave, int numberOfOctaves)
+        public Sift(Image input, int levelsInOctave, int numberOfOctaves  = 0)
         {
+            if(numberOfOctaves == 0)
+            {
+                float[,] tempFloat = input.Get();
+                int min = new int[] { tempFloat.GetLength(0), tempFloat.GetLength(1) }.Min();
+                numberOfOctaves = (int)(Math.Log(min) / Math.Log(2) - 2);
+            }
+            
             // Build Gaussian Pyramid
             gaussPyr = GaussianPyramid(input, numberOfOctaves, levelsInOctave);
 
@@ -41,7 +48,7 @@ namespace SiftSharp.SIFT
             features = ScaleSpaceExtremas(dogPyr);
 
             // Assign scales to features
-            features = FeatureScales(features, initialSigma, levelsInOctave);
+            features = FeatureScales(input, features, initialSigma, levelsInOctave);
 
             // Assign orientation to features
             features = FeatureOrientations(gaussPyr, features);
@@ -61,6 +68,7 @@ namespace SiftSharp.SIFT
         private Feature[] ComputeDescriptors(Image[][] gaussPyr, Feature[] features, 
             int descriptorWidth, int bins)
         {
+            List<Feature> validFeatures = new List<Feature>();
             for (int i = 0; i < features.Length; i++)
             {
                 double[,,] hist = DescriptorHistogram(
@@ -73,9 +81,15 @@ namespace SiftSharp.SIFT
                     bins
                 );
 
-                features[i].descr = HistogramToDescriptor(hist, descriptorWidth, bins);
+                double[] descriptor = HistogramToDescriptor(hist, descriptorWidth, bins);
+                if (!descriptor.ToList().Contains(Double.NaN))
+                {
+                    features[i].descr = descriptor;
+                    validFeatures.Add(features[i]);
+                }
             }
-            return features;
+
+            return validFeatures.ToArray();
         }
 
         /// <summary>
@@ -147,7 +161,7 @@ namespace SiftSharp.SIFT
             // Scalefactor times scale
             double histWidth = 3.0 * scale;
             int radius = (int) (histWidth * Math.Sqrt(2) * (descriptorWidth + 1.0) * 0.5 + 0.5);
-
+           
             double[,,] histogram = new double[descriptorWidth,descriptorWidth,bins];
             
             for(int i = -radius; i <= radius; i++)
@@ -211,7 +225,9 @@ namespace SiftSharp.SIFT
 
             List<Feature> listedKeypoints = 
                 new List<Feature>();
-            
+
+            double prelimContrastThresh = 0.5 * contrastTresh / levels;
+
             for (int o = 0; o < octaves; o++)
             {
                 for (int l = 1; l < levels - 2; l++)
@@ -221,12 +237,13 @@ namespace SiftSharp.SIFT
                     {
                         for (int y = 1; y < currentLayer.GetLength(1) - 2; y++)
                         {
-                            if (dogPyr[o][l].Get()[x, y] > contrastTresh && IsExtremum(dogPyr, x, y, o, l))
+                            if (dogPyr[o][l].Get()[x, y] > prelimContrastThresh && IsExtremum(dogPyr, x, y, o, l))
                             {
                                 Feature feat =
-                                    Interpolation.InterpolatesExtremum(dogPyr, o, l, x, y, levels, curvatureTresh);
+                                    Interpolation.InterpolatesExtremum(dogPyr, o, l, x, y, levels, contrastTresh);
 
-                                if(feat != null && IsTooEdgeLike(dogPyr[o][l],x,y,curvatureTresh))
+                                if(feat != null && 
+                                    !IsTooEdgeLike(dogPyr[o][l],(int)feat.xLayer, (int)feat.yLayer, curvatureTresh))
                                 {
                                     listedKeypoints.Add(feat);
                                 }
@@ -235,6 +252,7 @@ namespace SiftSharp.SIFT
                     }
                }
             }
+
             return listedKeypoints.ToArray();
         }
 
@@ -246,22 +264,58 @@ namespace SiftSharp.SIFT
         /// <returns>Array of features with orientations</returns>
         public Feature[] FeatureOrientations(Image[][] gaussPyr, Feature[] features)
         {
+            List<Feature> validFeatures = new List<Feature>();
             for (int i = 0; i < features.Length; i++)
             {
                 Feature curFeat = features[i];
                 double[] histogram = Histogram(
                     gaussPyr[curFeat.octave][curFeat.level],
-                    (int)curFeat.x,
-                    (int)curFeat.y,
+                    (int)curFeat.xLayer,
+                    (int)curFeat.yLayer,
                     orientationBins,
                     (int)Math.Round(orientationRadius * curFeat.scale),
                     sigmaOrientationFactor * curFeat.scale
                 );
                 
-                int orientationIndex = histogram.ToList().IndexOf(histogram.Max());
-                features[i].orientation = ((float)orientationIndex / orientationBins) * (2 * Math.PI);
+                histogram = SmoothHistogram(histogram, 2);
+
+                double histMax = histogram.Max();
+                int orientationIndex = histogram.ToList().IndexOf(histMax);
+
+                features[i].orientation = 
+                    ((float)orientationIndex / orientationBins) * (2 * Math.PI);
+                
+                validFeatures.Add(features[i]);
             }
-            return features;
+            return validFeatures.ToArray();
+        }
+
+        /// <summary>
+        /// Gaussian smooths an orientation histogram
+        /// </summary>
+        /// <param name="histogram">Histogram to be smoothed</param>
+        /// <param name="passes">Number of gaussian passes</param>
+        /// <returns></returns>
+        public static double[] SmoothHistogram(double[] histogram, int passes)
+        {
+            // Length of histogram (bins)
+            int length = histogram.Length;
+
+            // Run per pass
+            for (int p = 0; p < passes; p++)
+            {
+                // Get last in order to wrap around
+                double previous = histogram.Last(), first = histogram[0];
+
+                for(int i = 0; i < length; i++)
+                {
+                    double current = histogram[i];
+                    
+                    histogram[i] = 0.25 * previous + 0.5 * histogram[i] +
+                        0.25 * ((i + 1 == length) ? first : histogram[i + 1]);
+                }
+            }
+            return histogram;
         }
 
         /// <summary>
@@ -307,18 +361,38 @@ namespace SiftSharp.SIFT
         /// <summary>
         /// Finds and assigns scale to array of features
         /// </summary>
+        /// <param name="input">Input image</param>
         /// <param name="features">Array of Features</param>
         /// <param name="sigma">Sigma</param>
         /// <param name="numberOflevels">Number of levels per octave</param>
-        /// <returns></returns>
-        public static Feature[] FeatureScales(Feature[] features, float sigma, int numberOflevels)
+        /// <returns>Array of features with scale assigned</returns>
+        public static Feature[] FeatureScales(Image input, Feature[] features, float sigma, int numberOflevels)
         {
+            float[,] fInput = input.Get();
+            int width = fInput.GetLength(0), height = fInput.GetLength(1);
+
+            List<Feature> filteredFeaturesWithScales = new List<Feature>();
+            
             for (int i = 0; i < features.Length; i++)
             {
-                features[i].scale = sigma * Math.Pow(2.0, 
-                    (features[i].octave) + ((features[i].level + features[i].subLevel) / numberOflevels));
+                if(true || features[i] != null)
+                {
+                    double scale = sigma * Math.Pow(2.0, 
+                        (features[i].octave) + ((features[i].level + features[i].subLevel) / numberOflevels));
+
+                    double relativeScale = orientationRadius * scale;
+
+                    // If x,y + relative scale is within image then keep the feature
+                    if(features[i].x - relativeScale > 0 && features[i].y - relativeScale > 0 &&
+                        features[i].x + relativeScale < width && features[i].y + relativeScale < height)
+                    {
+                        features[i].scale = scale;
+                        filteredFeaturesWithScales.Add(features[i]);
+                    }
+                }
             }
-            return features;
+            
+            return filteredFeaturesWithScales.ToArray();
         }
         
         /// <summary>
@@ -439,7 +513,7 @@ namespace SiftSharp.SIFT
                         {
                             //Subtract each pixel x,y in current image indexed from one with previous for each level
                             result[octave][level - 1][x, y] =
-                                Math.Abs(currentImage[x, y] - prevImage[x, y]);
+                                Math.Abs(prevImage[x, y] - currentImage[x, y]);
                         }
                     }
                     dogPyramid[octave][level - 1] = new Image(result[octave][level - 1]);
@@ -482,34 +556,35 @@ namespace SiftSharp.SIFT
                 for (int j = -radius; j <= radius; j++)
                 {
                     // Make sure that pixel is within image
-                    if (x + i > radius && x + i < width - radius && 
-                        y + j > radius && y + j < height - radius)
+                    if (x + i - 1 >= 0 && x + i + 1 < width &&
+                        y + j - 1 >= 0 && y + j + 1 < height)
                     {
                         double magnitude, orientation;
 
                         // Calculate magnitude and orientation
-                        GradientMagnitudeOrientation(
-                            inputConverted, x + i, y + i, out magnitude, out orientation);
+                        if (GradientMagnitudeOrientation(
+                            inputConverted, x + i, y + j, out magnitude, out orientation))
+                        {
+                            // Create a weight for bin ( e^( -(x^2 + y^2) / (2*sigma^2) ) )
+                            double weight = Math.Exp(-(i * i + j * j) / exponentialDenom);
 
-                        // Create a weight for bin ( e^( -(x^2 + y^2) / (2*sigma^2) ) )
-                        double weight = Math.Exp(-(i * i + j * j) / exponentialDenom);
+                            // We find the percentage of which the orientation fills a full
+                            // circle. We do this by first ensuring that we don't end with 
+                            // negative values by adding PI to our orientation. Afterwards
+                            // we devide by by 2PI to get the percentage of the full circle. 
+                            double percantageOfCircle = (orientation + Math.PI) / (Math.PI * 2);
 
-                        // We find the percentage of which the orientation fills a full
-                        // circle. We do this by first ensuring that we don't end with 
-                        // negative values by adding PI to our orientation. Afterwards
-                        // we devide by by 2PI to get the percentage of the full circle. 
-                        double percantageOfCircle = (orientation + Math.PI) / (Math.PI * 2);
+                            // Determine which bin inwhich our magnitude should be added to
+                            // by multiplying our pecentage by our number of bins and round
+                            // to nearest integer, to find the respective bin.
+                            int bin = (int)Math.Round(bins * percantageOfCircle);
 
-                        // Determine which bin inwhich our magnitude should be added to
-                        // by multiplying our pecentage by our number of bins and round
-                        // to nearest integer, to find the respective bin.
-                        int bin = (int)Math.Round(bins * percantageOfCircle);
+                            // Set bin to zero if higher
+                            bin = (bin < bins) ? bin : 0;
 
-                        // Set bin to zero if higher
-                        bin = (bin < bins) ? bin : 0;
-
-                        // Add to histogram
-                        histogram[bin] += weight * magnitude;
+                            // Add to histogram
+                            histogram[bin] += weight * magnitude;
+                        }
                     }
                 }
             }
@@ -530,7 +605,7 @@ namespace SiftSharp.SIFT
         public static bool GradientMagnitudeOrientation(float[,] layer, int x, int y, 
             out double magnitude, out double orientation)
         {
-            if (x > 1 && x < layer.GetLength(0) - 1 && y > 1 && y < layer.GetLength(1) - 1)
+            if (x >= 1 && x < layer.GetLength(0) - 1 && y >= 1 && y < layer.GetLength(1) - 1)
             {
                 double dx = layer[x + 1, y] - layer[x - 1, y];
                 double dy = layer[x, y - 1] - layer[x, y + 1];
@@ -573,47 +648,53 @@ namespace SiftSharp.SIFT
         /// <returns>Bool true or false for a point</returns>
         public static bool IsExtremum(Image[][] dogPyramid, int x, int y, int octave, int level)
         {
-            bool isMinimum = false;
-            bool isMaximum = false;
+            bool isMinimum = true;
+            bool isMaximum = true;
+
             float[,] currentImage = dogPyramid[octave][level].Get();
             float featurePixel = currentImage[x, y];
 
+
             //For adjacent to next image
-            for (int imgIndex = -1; imgIndex <= 1; imgIndex++)
+            for (int levelIndex = -1; levelIndex <= 1; levelIndex++)
             {
                 //For each index away (3x3 neighborhood)
                 for (int xIndex = -1; xIndex <= 1; xIndex++)
                 {
                     for (int yIndex = -1; yIndex <= 1; yIndex++)
                     {
-                        if (imgIndex == 0 && xIndex == 0 && yIndex == 0)
+                        if (levelIndex == 0 && xIndex == 0 && yIndex == 0)
                         {
                             continue;
                         }
 
-                        float levelImage = (dogPyramid[octave][level + imgIndex].Get()[x + xIndex, y + yIndex]);
+                        float levelPixel = 
+                            (dogPyramid[octave][level + levelIndex].Get()[x + xIndex, y + yIndex]);
                         
                         
-                        //If the pixel of feature is greather than neighbor
-                        if (featurePixel > levelImage)
+                        //If the pixel of feature is less or equal to neighbor
+                        if (featurePixel <= levelPixel)
                         {
-                            isMaximum = true;
+                            isMaximum = false;
                         }
-                        //If the pixel of feature is less than neighbor
-                        else if (featurePixel < levelImage)
+
+                        //If the pixel of feature is greater or equal to neighbor
+                        if (featurePixel >= levelPixel)
                         {
-                            isMinimum = true;
-                        }
-                        //If both are true, then there is both values greater and less than the pixel,
-                        // therefore it is neither maximum or minimum
-                        if (isMaximum && isMinimum)
-                        {
-                            return false;
+                            isMinimum = false;
                         }
                     }
                 }
             }
-            return isMinimum || isMaximum;
+
+            //If both are true, then there is both values greater and less than the pixel,
+            // therefore it is neither maximum or minimum
+            if (isMaximum && isMinimum)
+            {
+                return false;
+            }
+
+            return (isMinimum || isMaximum);
         }
    }
 }

@@ -51,6 +51,8 @@ namespace SiftSharp.SIFT
             Feature newFeature = new Feature();
             newFeature.x = (x + xCol) * Math.Pow(2.0, octave);
             newFeature.y = (y + xRow) * Math.Pow(2.0, octave);
+            newFeature.xLayer = x;
+            newFeature.yLayer = y;
             newFeature.level = level;
             newFeature.subLevel = xLevel;
             newFeature.octave = octave;
@@ -102,6 +104,22 @@ namespace SiftSharp.SIFT
             xCol = result[0];
         }
 
+        public static Vector<double> InterpolationStep(Image[][] dogPyramid, int x, int y, int octave, int level)
+        {
+            //Compute derivatives & hessian
+            Vector<double> derivatives = Derivative3D(dogPyramid, octave, level, x, y);
+            Matrix<double> hessian = Hessian3D(dogPyramid, octave, level, x, y);
+
+            //Invert hessian
+            Matrix<double> invertedH = hessian.Inverse(); ;
+
+            //Inverted hessian matrix multiplication with derivatives weighted with (-1)
+            Vector<double> result = invertedH.Multiply(-1).Multiply(derivatives);
+
+            return result;
+        }
+
+
         /// <summary>
         /// Calculates Hessian Matrix from pixel in DoG scale space.
         /// </summary>
@@ -132,18 +150,18 @@ namespace SiftSharp.SIFT
 
             double dxy = (currentImage[x + 1, y + 1]) -
                         (currentImage[x - 1, y + 1]) -
-                        (currentImage[x + 1, y - 1]) -
-                        (currentImage[x - 1, y - 1]) / 4.0F;
+                        (currentImage[x + 1, y - 1]) +
+                        (currentImage[x - 1, y - 1]) / 4.0;
 
             double dxs = (nextImage[x + 1, y]) -
                         (nextImage[x - 1, y]) -
                         (prevImage[x + 1, y]) +
-                        (prevImage[x - 1, y]) / 4.0F;
+                        (prevImage[x - 1, y]) / 4.0;
 
             double dys = (nextImage[x, y + 1]) -
                         (nextImage[x, y - 1]) -
                         (prevImage[x, y + 1]) +
-                        (prevImage[x, y - 1]) / 4.0F;
+                        (prevImage[x, y - 1]) / 4.0;
 
             // Create and return matrix from denseMatrix
             return new DenseMatrix(3, 3, new double[] {
@@ -206,7 +224,6 @@ namespace SiftSharp.SIFT
 
             return histogram;
         }
-
 
         /// <summary>
         /// Calculates the partial derivatives in x, y, and scale of a 
