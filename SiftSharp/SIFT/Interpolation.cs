@@ -132,7 +132,7 @@ namespace SiftSharp.SIFT
 
             double dxy = (currentImage[x + 1, y + 1]) -
                         (currentImage[x - 1, y + 1]) -
-                        (currentImage[x + 1, y - 1]) -
+                        (currentImage[x + 1, y - 1]) +
                         (currentImage[x - 1, y - 1]) / 4.0F;
 
             double dxs = (nextImage[x + 1, y]) -
