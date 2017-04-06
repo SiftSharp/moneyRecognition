@@ -309,8 +309,6 @@ namespace SiftSharp.SIFT
 
                 for(int i = 0; i < length; i++)
                 {
-                    double current = histogram[i];
-                    
                     histogram[i] = 0.25 * previous + 0.5 * histogram[i] +
                         0.25 * ((i + 1 == length) ? first : histogram[i + 1]);
                 }
@@ -375,7 +373,7 @@ namespace SiftSharp.SIFT
             
             for (int i = 0; i < features.Length; i++)
             {
-                if(true || features[i] != null)
+                if(features[i] != null)
                 {
                     double scale = sigma * Math.Pow(2.0, 
                         (features[i].octave) + ((features[i].level + features[i].subLevel) / numberOflevels));
