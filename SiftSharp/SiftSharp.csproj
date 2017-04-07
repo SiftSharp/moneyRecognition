@@ -60,6 +60,7 @@
     <Compile Include="SIFT\Draw.cs" />
     <Compile Include="SIFT\Feature.cs" />
     <Compile Include="SIFT\Interpolation.cs" />
+    <Compile Include="SIFT\Persist.cs" />
     <Compile Include="SIFT\Sift.cs" />
   </ItemGroup>
   <ItemGroup>

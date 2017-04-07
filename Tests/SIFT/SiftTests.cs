@@ -70,7 +70,29 @@ namespace SiftSharp.SIFT.Tests
             Assert.IsTrue(Sift.IsExtremum(fakeDogPyramid, 1, 1, 0, 1));
         }
 
-        
+        [Test()]
+        public void Histogram_Should()
+        {
+            int x = 2, y = 2, bins = 4, radius = 2;
+            double sigma = 1.5F;
+
+            float[,] keypoint = new float[,]
+            {
+                { 1.0F, 2.0F, 3.0F, 4.0F, 5.0F },
+                { 1.0F, 2.0F, 3.0F, 4.0F, 5.0F },
+                { 1.0F, 2.0F, 3.0F, 4.0F, 5.0F },
+                { 1.0F, 2.0F, 3.0F, 4.0F, 5.0F },
+                { 1.0F, 2.0F, 3.0F, 4.0F, 5.0F },
+            };
+
+            Image keypointImage = new Image(keypoint);
+
+            double[] histogram = Sift.Histogram(
+                keypointImage, x, y, bins, radius, sigma);    
+
+
+        }
+
 
 
     }

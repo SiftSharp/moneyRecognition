@@ -54,6 +54,7 @@
   <ItemGroup>
     <Compile Include="ImageTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SIFT\PersistTests.cs" />
     <Compile Include="SIFT\SiftTests.cs" />
   </ItemGroup>
   <ItemGroup>
