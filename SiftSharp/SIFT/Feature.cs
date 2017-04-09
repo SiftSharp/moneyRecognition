@@ -23,5 +23,7 @@ namespace SiftSharp.SIFT
         public int level;
         // Sublevel feature is in
         public double subLevel;
+
+        public string userDefined;
     }
 }

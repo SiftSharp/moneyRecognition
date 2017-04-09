@@ -20,6 +20,12 @@ namespace SiftSharp {
             CrossCorrelation
         }
 
+
+        public Image(Bitmap bitmap)
+        {
+            img = ReadImage(bitmap);
+        }
+
         public Image(float[,] img)
         {
             this.img = img;

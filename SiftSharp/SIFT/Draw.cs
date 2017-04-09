@@ -44,7 +44,7 @@ namespace SiftSharp.SIFT
             Graphics g = Graphics.FromImage(bitmap);
 
             // Create instance of pen with random color
-            Pen p = new Pen(ColorTranslator.FromHtml(neonColors[level]), 2F);
+            Pen p = new Pen(ColorTranslator.FromHtml(neonColors[level]), 1F);
 
             // Draw circle with given radius
             g.DrawEllipse(p, x - radius, y - radius, radius * 2, radius * 2);

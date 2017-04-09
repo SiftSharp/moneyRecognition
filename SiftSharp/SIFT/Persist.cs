@@ -102,14 +102,14 @@ namespace SiftSharp.SIFT
             // Decode features and add to list
             for (int i = pntr; i < file.Length; i += featLength)
             {
-                features.Add(DecodeFeature(file,i));
+                Feature feat = DecodeFeature(file, i);
+                feat.userDefined = Path.GetFileNameWithoutExtension(path);
+                features.Add(feat);
             }
 
             return features.ToArray();
         }
-
-   
-
+        
         /// <summary>
         /// Decode a feature
         /// </summary>
