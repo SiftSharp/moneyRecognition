@@ -20,6 +20,12 @@ namespace SiftSharp {
             CrossCorrelation
         }
 
+
+        public Image(Bitmap bitmap)
+        {
+            img = ReadImage(bitmap);
+        }
+
         public Image(float[,] img)
         {
             this.img = img;
@@ -28,7 +34,7 @@ namespace SiftSharp {
         public Image(string path) {
             Bitmap bitmapInput;
             try {
-                bitmapInput = new Bitmap(path);
+                bitmapInput = new Bitmap(System.Drawing.Image.FromFile(path));
             }
             catch (Exception) {
                 throw new InvalidDataException(

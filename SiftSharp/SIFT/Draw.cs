@@ -44,7 +44,7 @@ namespace SiftSharp.SIFT
             Graphics g = Graphics.FromImage(bitmap);
 
             // Create instance of pen with random color
-            Pen p = new Pen(ColorTranslator.FromHtml(neonColors[level]), 2F);
+            Pen p = new Pen(ColorTranslator.FromHtml(neonColors[level]), 1F);
 
             // Draw circle with given radius
             g.DrawEllipse(p, x - radius, y - radius, radius * 2, radius * 2);
@@ -59,6 +59,27 @@ namespace SiftSharp.SIFT
             // Draw line illustrating orientation
             g.DrawLine(p, new Point(x, y), new Point(cx, cy));
 
+            return bitmap;
+        }
+
+        public static Bitmap FeatureMatch(Bitmap bitmap, int x, int y, int x2, int y2)
+        {
+            // Array of hex codes for bright neon colors
+            string[] neonColors = new string[] {
+                "#FFFF00","#FFFF33","#F2EA02","#E6FB04","#FF0000","#FD1C03",
+                "#FF3300","#FF6600","#00FF00","#00FF33","#00FF66","#33FF00",
+                "#00FFFF","#099FFF","#0062FF","#0033FF","#FF00FF","#FF00CC",
+                "#FF0099","#CC00FF","#9D00FF","#CC00FF","#6E0DD0","#9900FF"
+            };
+
+            // Create graphics instance from bitmap
+            Graphics g = Graphics.FromImage(bitmap);
+
+            // Create instance of pen with random color
+            Pen p = new Pen(ColorTranslator.FromHtml(neonColors[9]), 1F);
+            
+            // Draw line illustrating orientation
+            g.DrawLine(p, new Point(x, y), new Point(x2, y2));
             return bitmap;
         }
     }

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace SiftSharp.SIFT
 {
     public class Feature
@@ -12,6 +7,10 @@ namespace SiftSharp.SIFT
         public double x;
         // Y Coordinate
         public double y;
+        // X coordinate on layer
+        public double xLayer;
+        // Y coordinate on layer
+        public double yLayer;
         // Scale of feature
         public double scale;
         // Orientation of feaute in form of percentage of circle
@@ -24,5 +23,7 @@ namespace SiftSharp.SIFT
         public int level;
         // Sublevel feature is in
         public double subLevel;
+
+        public string userDefined;
     }
 }
