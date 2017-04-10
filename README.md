@@ -1,5 +1,5 @@
-# objectRecognition
-[![Build Status](https://travis-ci.com/boginw/objectRecognition.svg?token=tskuvjG7uupxTMZugA6Y&branch=master)](https://travis-ci.com/boginw/objectRecognition)
+# Money Recognition
+[![Build Status](https://ci.appveyor.com/api/projects/status/y7v1ve8jmx6ms6fl?svg=true)](https://ci.appveyor.com/project/boginw/objectrecognition-6v9rm)
 
 ## Rules
  * **no pushing to master branch**
