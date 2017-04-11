@@ -1,5 +1,5 @@
 # Money Recognition
-[![Build Status](https://ci.appveyor.com/api/projects/status/a0spdfonm0v36re5?svg=true)](https://ci.appveyor.com/project/boginw/moneyrecognition)
+[![Build status](https://ci.appveyor.com/api/projects/status/cu86hr3s9cuxa3k4?svg=true)](https://ci.appveyor.com/project/boginw/moneyrecognition)
 
 ## Rules
  * **no pushing to master branch**
